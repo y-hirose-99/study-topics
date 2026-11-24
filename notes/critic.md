@@ -1,201 +1,174 @@
-# critic（反論役）レビュー（2026-11-23 JST 実行）
+# critic（反論役）レビュー（2026-11-24 JST 実行）
 
-対象: notes/trend-scout.md（T1〜T3）、notes/practitioner.md（P1〜P5）の計 8 件
-照合先: CLAUDE.md（前提・評価基準・根拠ルール・過去テーマ 3 件）、backlog.md（候補・採用・却下・フィードバックすべて空）
+対象: notes/practitioner.md の新規候補 P1〜P3、trend-scout / practitioner の既出候補の更新情報（CocoaPods、Gemini CLI→Antigravity CLI、auto mode 関連、/loop）
+照合先: CLAUDE.md（前提・評価基準・根拠ルール・過去テーマ 3 件）、backlog.md（候補 4 件・却下 2 件・フィードバック欄は空）、reports/2026-11-23.md
 
 ## 結論サマリ
 
 | ID | 候補 | 判定 | 参考点（新/実/15/デ） | 一言 |
 |---|---|---|---|---|
-| T1 | Flutter 3.50 / Dart 3.14 と CocoaPods → SwiftPM | 条件付き | 4/3/4/3 = 14 | Flutter 3.50 のリリースは確認できた。ただし「CocoaPods 期限で iOS ビルドが通らなくなる」は言い過ぎ。テーマを絞る必要あり |
-| T2 | Gemini CLI → Antigravity CLI 移行 | 条件付き（確認できなければ却下） | 3/3/4/3 = 13（未確認につき減点込み） | 核となる「移行」が未確認。確認できた小機能だけでは弱い |
-| T3 | Vite+ 安定版 / Vinext 1.0 | 却下 | 1/2/3/2 = 8 | 対象期間外、帰属が誤っている可能性、本番非推奨、Web 限定 |
-| P1 | `/code-review` 重要度ラベル + `--fix` | 採用可（修正点あり） | 5/4/4/5 = 18 | 根拠は一次情報で確認済み。Team プランでマネージド版も使える |
-| P2 | `/loop` と `loop.md` で PR・CI を見張る | 条件付き（P1 に吸収を推奨） | 5/3/3/3 = 14 | セッションを開いている間しか動かない。単独で話すには弱い |
-| P3 | `/auto-mode-setup` と `auto-mode critique` | 条件付き（P4 と統合） | 4/3/3/3 = 13 | Team で使えるのは確認済み。ただし設定の共有方法の説明が間違っている |
-| P4 | 無人実行の権限設定まとめ | 条件付き（P3 と統合） | 5/2/3/4 = 14 | 根拠はすべて確認済み。単独では changelog の読み上げになり、対象も狭い |
-| P5 | `/usage` 改善と idle compaction | 却下（単独枠として） | 4/3/4/2 = 13 | 中身が薄く、デモ結果も予測できない。fast mode 終了（11/30）は発表時点で終わっている可能性が高い |
+| P1 | VS Code 拡張「Fix with Claude Code」「Resolve Merge Conflicts」 | 条件付き | 5/3/4/4 = 16 | 根拠は一次情報で確認済み。ただし Claude Code 枠が 3 つ目になる。TOP2 と「Claude Code 2 枠目」を争わせるのが条件 |
+| P2 | `gh event listen`（gh v2.105.0、preview） | 条件付き（ウェイトリストを通過していなければ却下） | 5/3/4/2 = 14（利用できればデモ 4 で 16） | 根拠は一次情報で確認済み。Claude Code 以外の貴重な候補。ただし preview のウェイトリストを通過していないとデモできない |
+| P3 | Gemini Gem→skills 移行・skills 共有 | 却下（今回）。再提出は可 | 4/2/4/2 = 12（減点込み） | 一次情報の本文が未確認（critic 側でも ENOTFOUND）。「当初は英語のみ」で日本語の社内では実務に効かない。移行時期も出典によって食い違う |
+| 更新 | CocoaPods trunk read-only（TOP3） | 条件付き（14 点への引き上げに同意） | 4/3/4/3 = 14 | 12/2 の日付と試験運用 11/2〜6 を一次情報で確認した。ただし構成の前提（「3.50 の時期」「SwiftPM を有効にするデモ」）を直す必要がある |
+| 更新 | Gemini CLI → Antigravity CLI（保留） | 却下（trend-scout の推奨に同意） | 1/1/4/3 = 9（減点込み） | 告知は 2026-05-19 で約 6 か月前。柱の告知本文も依然として未確認 |
+| 更新 | auto mode 関連（TOP2） | スコアは据え置き（15） | 4/3/4/4 = 15 | 2.1.330 / 2.1.331 の項目を確認した。追加するのは 1 行で十分。スライドを増やすと要点 3 つを超える |
 
-推奨する並び: P1 採用 / P3+P4 統合で条件付き / T1 を絞って条件付き（モバイル枠）/ T2 は確認待ち。
-Claude Code 関連は最大 2 枠（P1 と P3+P4）にする。P2・P5 は単独では出さない。
+**推奨する並び（リードへの提案）**: TOP1（`/code-review`）は据え置き。Claude Code の 2 枠目は、TOP2（auto mode）と P1（VS Code 拡張）のどちらか一方にする。社内で auto mode が組織設定でオフなら P1 に差し替える。TOP3 は CocoaPods（修正版）。P2 は「Claude Code 以外の候補」として、ウェイトリストを通過していることが確認できれば TOP3 と並ぶ候補にする。P3 と Gemini CLI は今回は出さない。
 
 ---
 
 ## 全体への指摘
 
-1. **Claude Code に偏りすぎ**: practitioner の 5 件はすべて Claude Code。原因は「一次情報が取れたホストが code.claude.com だけ」というネットワーク制約で、ネタとしての価値で選ばれたわけではない。CLAUDE.md の好まれる傾向（AI 活用の具体例）には合うが、5 件並べると「Claude Code changelog 解説会」になる。過去テーマ 3 件のうち 2 件はすでに Claude 関連で、AI ツール寄りに飽和するおそれがある（backlog のフィードバック欄は空なので、飽和は推測）。
-2. **Team プランで使えるか（今回確認した結果）**:
-   - マネージド版 Code Review: Team / Enterprise 向け。Owner が有効化し、レビューごとに費用がかかる（code-review.md の Availability に記載）。practitioner が「分からない」としていた点は解消。
-   - `/code-review`（ローカル版）: どのプランでも使える。
-   - `/auto-mode-setup`: Pro / Max / Ultra / Team / Enterprise で使える（Team は v2.1.228 以上）。ただし auto mode 自体は Team / Enterprise で組織単位のオン・オフがあり、社内で有効かどうかは未確認。
-   - `/loop`、各 permissions 設定、`/usage`: プランの制限は今回確認したページに書かれていない（推測では制限なし）。
-3. **trend-scout は「一次情報なし」で減点が必要**: 根拠ルールに従い T1〜T3 は「新しさ」「実務への効き」を各 1 点減点して採点するのが妥当。ただし今回、github.com / raw.githubusercontent.com 経由で一部を critic 側で確認できた（下記）。
+1. **Claude Code への偏りが悪化しつつある**: 新規候補 3 件のうち 1 件（P1）は Claude Code。既出の TOP1・TOP2 も Claude Code。P1 を独立した枠として足すと、上位 3 枠のうち 3 枠が Claude Code になる。原因は、一次情報を取得できるホストが code.claude.com と github.com に限られているネットワーク制約で、前回から変わっていない。Claude Code は「最大 2 枠」という前回の方針を維持すべき。
+2. **一次情報を確認できる範囲は前回と同じ**: critic 側でも knowledge.workspace.google.com と docs.github.com が ENOTFOUND だった。code.claude.com / github.com / raw.githubusercontent.com は取得できた。
+3. **今回は候補を無理に埋めていない点は評価できる**: trend-scout の「新規 0 件」、practitioner の「5 件に満たないので 3 件」は妥当な判断。
 
 ---
 
-## T1: Flutter 3.50 / Dart 3.14 と CocoaPods → SwiftPM 移行
+## P1: VS Code 拡張「Fix with Claude Code」「Resolve Merge Conflicts」（2.1.330 / 2.1.331）
 
 **判定: 条件付き**
 
-- **根拠の確からしさ（critic 側で確認）**
-  - Flutter stable の CHANGELOG（https://raw.githubusercontent.com/flutter/flutter/stable/CHANGELOG.md）に「Flutter 3.50 Changes」として 3.50.0 と 3.50.1 がある。**リリースは事実**。ただし日付と、3.50 での SwiftPM / CocoaPods の扱いは書かれていない。
-  - Dart stable の CHANGELOG（https://raw.githubusercontent.com/dart-lang/sdk/stable/CHANGELOG.md）では 3.14.1 が 2026-11-17 リリース。3.14.0 は「Unreleased」のまま（ページ内で矛盾している）。trend-scout の「3.14 は 2026-11-11」は**確認できなかった**。
-  - CocoaPods: 検索結果の要約によると、公式ブログ（blog.cocoapods.org。本文は取得していない）の計画では **trunk の read-only 化は 2026-12-02**。**既存のビルドは壊れない**が、trunk への新しい pod・新しいバージョンの追加が止まる。trend-scout の「CocoaPods が更新受付を止めるので iOS ビルドの移行が実務上の課題」は**誇張**。正確には「CocoaPods 経由で配布されているネイティブ依存が今後更新されなくなる。プラグインが SwiftPM に対応しているかがカギ」。
-  - 3.50 の新機能と、SwiftPM がデフォルトになったかどうかは、引き続き未確認（docs.flutter.dev が取得できない）。
-- **既出チェック**: 過去テーマ「Claude を使った Flutter モバイル開発の実践」とは観点が違う（AI ではなくビルド基盤の話）。重複なし。
-- **時間チェック**: 「3.50 の新機能」と「SwiftPM 移行」の 2 本立てだと 15 分を超える。3.50 の新機能は確認もできていないので削る。
-- **対象チェック**: モバイル（Flutter）が主。インフラは CI の macOS ランナーの範囲だけ。Web には関係ない。参加者の半数以上に届くかは微妙なので、実務への効きは 3。
-- **直し方**:
-  1. タイトルを「CocoaPods trunk 12/2 read-only: 社内 Flutter アプリで何が起きて何が起きないか」に絞る。
-  2. 結論として「既存ビルドは通る」を先に言い、誤った危機感をあおらない。
-  3. デモは、社内アプリの依存プラグインの SwiftPM 対応状況を一覧にする手順と、SwiftPM を有効にした iOS ビルド。Mac と Xcode が要るのでリハーサル必須。過去版の CHANGELOG に SwiftPM 有効時のビルド不具合（3.44.2 / 3.47.2）が載っているので、デモ失敗のリスクがある。
-  4. 発表前に docs.flutter.dev の SwiftPM ページと blog.cocoapods.org の本文を取得して裏を取る。
-- **参考点**: 新しさ 4 / 実務 3 / 15 分 4 / デモ 3 = 14
+- **根拠の確からしさ（critic 側で一次情報を確認）**: https://code.claude.com/docs/en/changelog
+  - 2.1.331（November 23, 2026）の [VSCode] Added に次の項目がある。practitioner の要約と一致。
+    - "Added "Fix with Claude Code" as a quick fix for errors and warnings and to failed tests in the test peek and the Test Results view, which puts the problem into the chat box"
+    - "Added "Resolve Merge Conflicts" to the editor title of a file with merge conflicts and to the Merge Changes group in Source Control"
+    - "Added "Add to Chat" to the right-click menu of changed files in the Source Control view"
+  - 2.1.331 の [VSCode] Changed「saving a proposed diff to accept it only after you click or type in its proposed (right) side」も一致。
+  - 2.1.330（November 20, 2026）の `/fork`、`claudeCode.escapeStopsClaude`、`claudeCode.pinPrompt`、`claudeCode.contextUsageThreshold` も一致。
+  - 補足: 2.1.331 には practitioner が挙げていない "Add Cell to Chat"（ノートブックのセル）もある。データ分析をする人がいなければ不要。
+- **過去テーマとの重複**:
+  - 「Claude を使った Flutter モバイル開発の実践」: 発表の中身は記録がないので推測になるが、IDE 上で Claude にエラーを直させる場面は、この過去テーマの中で既に見せている可能性が高い。「右クリックで渡せるようになった」という差分は、このテーマを見た人には小さく感じられる。デモで Flutter を使わないという practitioner の対策は正しいが、それだけでは見た目の重なりは消えない。
+  - 「Copilot → Claude 乗り換え比較」: **ここの重なりが一番大きい**。critic の知識では、GitHub Copilot には VS Code のクイックフィックスで AI に修正させる機能と、AI でマージコンフリクトを解消する機能が以前からある（推測。今回 Copilot 側の一次情報は確認していない）。そのため P1 は「Claude Code が Copilot と同等の機能を備えた」話として受け取られやすく、質疑で比較の話になりやすい。比較の構成にしないことを明記する必要がある。
+  - 既出の Claude Code 候補群（`/code-review`、auto mode、`/loop`、`/usage`）とは機能として重ならない。ただし TOP1 の「`--fix` で直す」とメッセージ（AI にコードを直させる）が近い。
+- **時間チェック**: 要点は 3 つに収まる（エディタの情報を渡す / デモ 3 種 / diff 保存の変更と設定）。前提知識は軽い。ただしデモを 3 本（型エラー・失敗テスト・コンフリクト）入れると 8 分では厳しい。特にコンフリクト解消はモデルの出力が毎回変わるので、2 本に絞るべき。
+- **対象チェック**: VS Code で Claude Code 拡張を使う人だけ。Android Studio / Xcode / JetBrains で作業するモバイル担当には効かない（practitioner も認めている）。インフラ担当が VS Code を使っているかは不明。「参加者の半数以上」は言えないので、実務への効きは 3。
+- **新規性の評価**: 機能は 11/23 リリースで新しさは 5。ただし中身は「メニュー項目が増えた」という機能紹介にとどまり、15 分のうち持ち帰れるのは操作 3 つと設定 3 つ。単独の枠としては TOP1 より明らかに薄い。
+- **直し方（条件）**:
+  1. 独立した枠として足さない。Claude Code の 2 枠目を TOP2（auto mode）と争わせる。P1 は組織設定に依存せず、デモも安定するので、社内で auto mode が使えない場合の代替として P1 のほうが優れている。
+  2. Copilot に触れるのは「同じことが Claude Code でもできる」の 1 文まで。比較表は作らない。
+  3. デモは「失敗テスト → Fix with Claude Code」と「コンフリクト → Resolve Merge Conflicts」の 2 本に絞る。型エラーのデモは失敗テストと内容が重なるので削る。
+  4. diff 保存の挙動変更（右側を触ってから保存しないと accept されない）は、既存の利用者が困る点なので必ず入れる。
+  5. Dart / Flutter の診断で「Fix with Claude Code」が出るかは、発表者が 1 回試してから「モバイルの人も使える」と言うこと（現状は推測）。
+- **参考点**: 新しさ 5 / 実務 3 / 15 分 4 / デモ 4 = 16
 
-## T2: Gemini CLI → Antigravity CLI 移行と 11 月の更新
+## P2: `gh event listen`（GitHub CLI v2.105.0、GitHub Event Streams preview）
 
-**判定: 条件付き（移行告知の本文が確認できなければ却下）**
+**判定: 条件付き（社内アカウント / org でウェイトリストを通過していなければ却下）**
 
-- **根拠の確からしさ（critic 側で確認）**
-  - https://github.com/google-gemini/gemini-cli/releases を取得できた。v0.68.0（11/10）に「add extension validation command」（#29980）、v0.69.0（11/19。preview は 11/10）に「/stats heatmap subcommand for daily token usage」（#30135）がある。trend-scout が「v0.69 は 11 月中旬」と書いた点はおおむね正しい。ただし `gemini extensions validate` というコマンド名そのものは確認できていない。
-  - **Antigravity CLI への言及はリリースページに一切ない**。移行告知（developers.googleblog.com）は DNS エラーで取得できず、geminicli.com も critic 側で ENOTFOUND。候補の柱が**完全に未確認**。
-- **既出チェック**: 「Copilot → Claude の乗り換え比較」と同じ型（AI ツールの乗り換え話）になりやすい。比較の構成は避けること。
-- **時間チェック**: 移行の中身が分かれば 15 分に収まる。分からないままなら話すことがない。
-- **対象チェック**: 「社内の公式 AI は Gemini」だが、それは Workspace の Gemini のこと。開発者が Gemini CLI を業務で使っているかは CLAUDE.md からは分からない（推測）。全員に関係するという主張は弱い。
-- **却下ライン**: 確認できた extension validation と `/stats` heatmap だけでは 15 分のネタにならない（マイナーアップデートの紹介どまり）。
-- **直し方**: developers.googleblog.com を許可して移行告知の本文（何が変わり、いつまでに、何をすべきか）を確認する。「Gemini CLI 利用者が今月中にやること」として 3 点に絞る。あわせて社内での Gemini CLI 利用実態を人間に確認する。
-- **参考点**: 新しさ 3（未確認につき減点込み）/ 実務 3 / 15 分 4 / デモ 3 = 13
+- **根拠の確からしさ（critic 側で一次情報を確認）**: https://github.com/cli/cli/releases/tag/v2.105.0
+  - 日付: ページ上の表示は「18 Nov」（年の表示なし）。リリースからリンクされている告知 URL の日付は 2026-11-17。practitioner の「2026-11-18」は許容範囲。
+  - "The new `gh event` command set lets agents, integrations, and scripts wait for pull request changes instead of polling GitHub." と一致。
+  - "GitHub Event Streams is in preview" と、ウェイトリスト（https://gh.io/event-streams-signup）を確認した。
+  - 既定では最初のイベントで終了し、`--count` / `--follow` を指定できる。例として `--timeout 30m` と `--jq .data.conclusion` が載っている。出力は CloudEvent JSON（`data.api_url` 付き）。`gh run view` / `gh run watch` から check suite イベントを提案する。いずれも一致。
+  - 追加で分かったこと: **`gh pr` / `gh api` を使うエージェントに `gh event listen` を提案する**変更も入っている。つまり、Claude Code などのエージェントがポーリングの代わりにこれを使う流れが想定されている。
+  - リリースからリンクされている告知（https://github.blog/changelog/2026-11-17-github-event-streams-is-now-in-preview）とドキュメント（https://docs.github.com/en/integrations/how-tos/using-github-event-streams）は、critic 側でも取得できていない（docs.github.com は ENOTFOUND、github.blog は前回から ENOTFOUND）。**利用条件・料金・プランによる制限は未確認**。
+- **既出チェック**: 過去テーマとの重複はない。TOP1 に吸収した `/loop` の CI 見張りと目的が重なる。ただし `/loop` は Claude のセッション内でポーリングする仕組みで、`gh event listen` は GitHub 側からイベントを受け取る仕組み。Claude Code に依存しない点は、偏りを直すうえでプラスになる。
+- **時間チェック**: 要点 3 つ（ポーリングとの違い / デモ / 応用）に収まる。前提知識は「GitHub Actions と PR が分かる」程度で軽い。
+- **対象チェック**: GitHub で PR を出す人全員が対象になりうる。ただし「CI 完了をシェルで待つ」必要がある人は、インフラ担当と自動化好きに限られる（推測）。実務への効きは 3。
+- **最大のリスク**: preview のウェイトリストを通過していないと、**デモがまったくできない**。CLAUDE.md の「30 分以内に準備できるデモ」はウェイトリスト次第になる。また preview なので、発表までに仕様が変わる可能性がある。
+- **直し方（条件）**:
+  1. 発表者（または社内 org）がウェイトリストに申し込み、通過していることを確認する。通過していなければ今回は却下し、GA（一般提供）の時点で再提出する。
+  2. docs.github.com のドキュメントで、必要な権限・org 管理者の設定・料金を確認する。
+  3. 応用パートは「Claude Code に `gh event listen` で待たせる」にすると、`gh` がエージェントに提案する一次情報の記述と合う。ただし Claude Code の話を膨らませすぎないこと。
+  4. TOP1 の `/loop` パートを `gh event listen` に置き換える案もリードは検討してよい（ポーリングせず、セッションへの依存も薄い）。ただし preview なので、TOP1 の安定性を下げるリスクがある。
+- **参考点**: 新しさ 5 / 実務 3 / 15 分 4 / デモ 2（ウェイトリストを通過していない前提）= 14。通過を確認できればデモ 4 で 16。
 
-## T3: Vite+ 安定版（Cloudflare）/ Vinext 1.0
+## P3: Gemini の Gem → skills 移行と skills 共有
 
-**判定: 却下**
+**判定: 却下（今回）。下記の条件を満たせば再提出は可**
 
-- 理由:
-  1. **新しさ**: Vinext 1.0 は 2026-09-28 で対象期間（10/20 以降）の外。trend-scout 自身も認めている。
-  2. **帰属が誤っている可能性**: 「Cloudflare Vite+」という表現はタイトルからの推測。critic の知識では Vite+ は VoidZero のツールチェーンで、Cloudflare の製品ではない（推測。一次情報は未確認）。InfoQ の記事も未取得。
-  3. **成熟度**: https://github.com/cloudflare/vinext の README は「Under active development」「not yet a drop-in replacement for every application or production workload」と書いている。リリース欄は空で、1.0 であることも確認できなかった。「Next.js を Vercel 以外に載せる現実的な選択肢」は言い過ぎ。
-  4. **対象**: Web チームのうち Next.js を使っている人だけ。社内で Next.js を使っているかどうかの情報もない。モバイルとインフラにはほぼ関係しない。
-  5. **デモ**: Cloudflare アカウントと Workers の準備が要り、「ビルド時間を比べる」は 30 分で信頼できる数字が出ない。
-- **参考点**: 新しさ 1 / 実務 2（二次情報のみで減点済み）/ 15 分 3 / デモ 2 = 8
+- **根拠の確からしさ**: 3 つの URL はいずれも公式ドメイン（knowledge.workspace.google.com / workspaceupdates.googleblog.com）だが、**本文は未取得で、検索結果の要約だけ**。critic 側でも https://knowledge.workspace.google.com/admin/generative-ai/gemini-app/prepare-for-the-transition-to-skills は ENOTFOUND だった。根拠ルールに従い、新しさと実務への効きを各 1 点減点する（前回の T2 と同じ扱い）。
+- **却下理由**:
+  1. **「skills は当初英語のみ」**（practitioner が自分で挙げた最大のリスク）: 社内は日本語で業務をしているので、「よく使う Gem を skills に作り直して共有する」という持ち帰りが成り立たない可能性が高い。「実務ですぐ試せる」に反する。
+  2. **移行時期が食い違う**: 「自動移行の 30 日以上前に通知」と「Skills will replace Gems in 2027」が両立するのか分からない。2027 年なら今話す緊急性は低い。
+  3. **社内のテナントで使えるか分からない**: エディション（Business Starter / Standard / Plus が対象との要約）と展開状況が未確認。前提が成り立たなければデモできない。
+  4. **エンジニア向けの勉強会に合わない面がある**: 「エンジニア以外にも効く」は長所だが、技術共有会の参加者はエンジニア。Gem を業務で作り込んでいるエンジニアがどれだけいるかも不明（推測）。
+- **長所（再提出のときに生かすべき点）**: 社内の公式 AI（Gemini）に直結する、今回唯一の非 Claude の AI 候補。Claude Code への偏りを直すには価値がある。
+- **再提出の条件**: knowledge.workspace.google.com と workspaceupdates.googleblog.com をネットワークで許可し、本文で (a) 移行日程、(b) 日本語対応の時期、(c) 対象エディションを確認する。日本語で使えることが確認できれば、条件付きで再評価する。
+- **既出チェック**: Gemini CLI（backlog）とは別製品で、重複はない。
+- **参考点**: 新しさ 4（5 から減点）/ 実務 2（3 から減点）/ 15 分 4 / デモ 2 = 12
 
 ---
 
-## P1: `/code-review` の重要度ラベルと `--fix`
+## 既出候補の更新情報
 
-**判定: 採用可（以下の修正をすること）**
+### CocoaPods trunk read-only（TOP3、13 点・条件付き）
 
-- **根拠の確からしさ（critic 側で再確認、すべて一次情報）**
-  - 2.1.328（11/19）: 「mark each finding Important, Pre-existing or Nit ... end each summary with a suggested fix」「report only bugs and CLAUDE.md violations; run `/simplify` for ...」。一致。
-  - 2.1.329（11/19）: 引数なしの `/code-review` で、ブランチ全体をデフォルトブランチと比べてレビューするようになった。`<pr number>` を指定すると `gh pr diff` で読むよう修正された。**practitioner のメモには入っていないが、デモに直接関係する**。
-  - 2.1.304 のレビューレベル（Quick/Standard/Deep）、2.1.307 の `@claude review stop`、2.1.323 の CSV ダウンロード: いずれも一致。
-  - マネージド版は **Team / Enterprise で使える**（code-review.md）。Owner が有効化し、利用ごとに費用がかかる。
-  - `--fix` と `--comment` の詳しい挙動（code-review-local.md）は critic 側では再取得していない（practitioner は確認済み）。
-- **修正すべき点**
-  1. 「Important 件数で CI を止める `gh api` + jq」は**マネージド版の check run（`bughunter-severity` 行）が前提**で、ローカル版 `/code-review` には当てはまらない。持ち帰りとしてまとめて書くと誤解を招く。マネージド版を社内で有効化していないなら、この部分は削るか「有効化した場合」と明記する。
-  2. マネージド版の check run は「never concludes as a failure」。CI を止めたいなら自前のスクリプトが必要、と正確に伝える。
-  3. デモ用リポジトリに **Flutter サンプルを使わない**こと。過去テーマ「Claude を使った Flutter モバイル開発の実践」と見た目が重なる。Web かインフラのリポジトリにする。
-  4. 「Copilot のレビューと比べてどうか」という構成にしない（過去テーマ「乗り換え比較」と重なる）。
-- **既出チェック**: 過去テーマとの実質的な重複は小さい（Flutter 開発の実践はおそらく実装中心、乗り換え比較はツール選定。どちらもレビュー運用そのものではないと推測）。
-- **時間チェック**: 要点 3 つ（ローカル版とマネージド版の違い / デモ / チーム運用）に収まる。
-- **対象チェック**: GitHub で PR を出す全員が対象。参加者の半数以上に届く。
-- **参考点**: 新しさ 5 / 実務 4 / 15 分 4 / デモ 5 = 18
+**判定: 14 点への引き上げに同意。ただし構成の修正が条件**
 
-## P2: `/loop` と `loop.md` で PR・CI を見張る
+- **日付の一次確認（critic 側で再確認）**: https://raw.githubusercontent.com/CocoaPods/blog.cocoapods.org/master/_posts/2024-11-30-CocoaPods-Specs-Repo.markdown
+  - タイトル "CocoaPods Trunk Read-only Plan"、著者 orta。"December 2nd 2026"（"a Wednesday after American Thanksgiving"）に新しい Podspec の受け付けを恒久的に止める、とある。
+  - 試験運用は 2026-11-02〜06。"keep all existing builds working"。Specs repo と CDN は "as long as GitHub and jsDelivr continue to exist" 動き続ける。いずれも trend-scout の引用と一致。
+  - 補足: 記事本文に「has been updated in May 2025」とある。ファイル名の日付は 2024-11-30 だが、内容は 2025-05 に更新されている。「2024-11-30 付」とだけ書くと誤解を招くので、「2024-11-30 公開、2025-05 更新」と書くこと。
+  - 試験運用が実際に行われたかと、12/2 に予定どおり実施されるかの直前告知は、引き続き未確認。
+- **URL の訂正**: https://raw.githubusercontent.com/CocoaPods/blog.cocoapods.org/master/_config.yml に `permalink: /:title` と `url: https://blog.cocoapods.org` がある。Jekyll の `:title` はファイル名の slug から作られるので、公開 URL は `https://blog.cocoapods.org/CocoaPods-Specs-Repo` になる（記事の front matter で permalink を上書きしていない前提。上の取得ではそのような記述はなかった）。末尾のスラッシュの有無は未確認。前回の `/CocoaPods-Trunk/` は誤りなので、backlog とレポートから外すこと。根拠には raw.githubusercontent.com の URL（取得可能な一次情報）を併記するのがよい。
+- **「SwiftPM の既定化は 3.50 ではなく 3.44 から」について**:
+  - Flutter の stable CHANGELOG（https://raw.githubusercontent.com/flutter/flutter/stable/CHANGELOG.md、critic 側で取得）には、**SwiftPM が既定になったことを書いた項目はない**。3.44.2 / 3.44.3 / 3.47.1 / 3.47.2 / 3.47.4 に SwiftPM 関連の不具合修正があるだけ。CHANGELOG はホットフィックスの一覧なので、書かれていないことは否定の根拠にならない。
+  - critic 側の検索でも、docs.flutter.dev の SwiftPM ページ、flutter.dev blog「saying goodbye to cocoapods swift package manager is soon the default in flutter」、Classmethod の記事が「3.44 から既定」と要約されている。**3.44 からの可能性は高いが、一次情報の本文は未確認**（docs.flutter.dev は ENOTFOUND。flutter/website の推測パスは 404）。
+  - **この点が構成に与える影響（重要）**: 3.44 から既定なら（3.44 のリリースは検索要約で 2026-05 とされる。未確認）、社内アプリが 3.44 以上なら SwiftPM はすでに有効になっている可能性が高い。その場合、前回の構成のデモ「SwiftPM を有効にして iOS ビルドする」は意味がない。デモは「CocoaPods にフォールバックしているプラグインを洗い出す」に変えるべき。社内アプリの Flutter バージョンと、`enable-swift-package-manager: false` で無効にしていないかを確認することが新しい条件になる。
+  - レポートの「Flutter 3.50 と Dart 3.14.1 が出た時期に重なり」という書き出しは削る。3.50 は今回の話と関係ない。
+- **時間・対象の評価**: 前回から変わらない。モバイル（Flutter）が中心で、Web には関係しない。12/2 を過ぎて開催すると、「何が起きるか」が「何が起きたか」に変わるので、開催日によって構成を調整すること。
+- **参考点**: 新しさ 4 / 実務 3（二次情報のみによる減点を解除）/ 15 分 4 / デモ 3 = **14**。デモを上記のとおり直さないなら、デモは 2 として 13 に据え置く。
 
-**判定: 条件付き（単独枠ではなく P1 の後半に 3 分ほど入れることを推奨）**
+### Gemini CLI → Antigravity CLI（保留、11 点）
 
-- **根拠の確からしさ**:
-  - 30 日への延長は **2.1.330（11/20）** の 1 項目で、「2.1.326〜330」ではない。条件として「while their session keeps running」と「tasks made before this release still end at 7 days」が付いている。practitioner のメモはこの条件を落としている。
-  - 2.1.329 の `/tasks` 集約と `x` で止める操作、2.1.319 の「Earlier in this session」行: いずれも一致。
-  - 2.1.329 で「旧バージョンで保存した定期タスクは、新しくサインインしたセッションではほぼ再設定が必要」という互換性の注意も入っている。発表で触れるべき。
-- **弱点**:
-  1. セッションを開いている間しか動かない。「Claude に任せる」と言うには、端末を開きっぱなしという制約が大きい。
-  2. 3 種類の定期実行（クラウド / Desktop / `/loop`）の使い分けを説明するだけで 3 分以上かかり、前提説明が重い。
-  3. デモが CI の実行時間とモデルの判断に左右され、15 分の枠で安定しない。
-- **既出チェック**: 重複なし。
-- **対象チェック**: PR を出す人。インフラの「デプロイ完了待ち」は根拠がなく、こじつけ気味。
-- **直し方**: P1 を「PR を出す前は `/code-review`、出した後は `/loop` で CI を見張る」の流れにして、後半に 3 分のおまけとして入れる。単独で出すなら、3 種類の比較を削り、`loop.md` のテンプレートとセッション依存の制約だけに絞る。
-- **参考点**: 新しさ 5 / 実務 3 / 15 分 3 / デモ 3 = 14
+**判定: 却下（trend-scout の推奨に同意）**
 
-## P3: `/auto-mode-setup` と `claude auto-mode critique`
+- 理由:
+  1. **古い**: 移行告知は 2026-05-19（検索要約と TechCrunch の URL の日付による。告知本文は未取得）。約 6 か月前の話で、新しさは 1。
+  2. **柱が依然として未確認**: developers.googleblog.com は今回も ENOTFOUND。根拠ルールの減点が残る。
+  3. **矛盾がある**: github.com/google-gemini/gemini-cli/releases では v0.70.0（11/19）まで開発が続いていて、移行の記載がない（trend-scout が確認。critic 側では今回は再取得していない）。「Gemini CLI が終わった」とも言い切れず、話の軸が定まらない。
+  4. **社内での利用実態が不明**: 前回からの宿題で、人間の回答がまだない。
+- 却下欄の理由として推奨する書き方: 「移行告知は 2026-05（対象期間外）、告知本文が未確認、社内での利用実態が不明」。Antigravity CLI を取り上げるなら、社内で使えることを確認したうえで別候補として出し直す。
+- **参考点**: 新しさ 1 / 実務 1（2 から減点）/ 15 分 4 / デモ 3 = 9
 
-**判定: 条件付き（P4 と統合して 1 枠にする）**
+### auto mode・無人の権限設定（TOP2、15 点）
 
-- **根拠の確からしさ**:
-  - auto-mode-config.md で `/auto-mode-setup` と `claude auto-mode critique` / `config` / `defaults` / `reset` が存在することを確認した。Team プランは v2.1.228 以上で使える。2.1.304 の記述（Bedrock / Vertex / telemetry 無効環境でも使える）も一致。2.1.328 の「recent auto mode denials を見るよう修正」も一致。
-  - 2.1.330 の「`rm` の承認必須化を広げた」は確認済み。ただし 2.1.326 側に該当項目は見当たらなかった（critic が見た範囲では 2.1.326 は該当なし）。
-- **誤りがある箇所**:
-  - `/auto-mode-setup` が書き込むのは `~/.claude/settings.json`（個人設定）。**分類器はプロジェクトの `.claude/settings.json` から `autoMode` を読まない**（ドキュメントに明記）。「`autoMode.environment` の書き方テンプレートをチームに配る」なら、managed settings（Owner が配布）経由になる。持ち帰りとして「リポジトリに置けば共有できる」と誤解されないようにすること。
-- **弱点**:
-  1. 前提知識が重い。auto mode とは何か、分類器、ask / deny の評価順序。参加者のうち Claude Code の auto mode を日常的に使っている人の割合は不明で、前提説明だけで時間切れになる危険がある。
-  2. Team プランでは組織単位で auto mode をオフにできる。社内で有効になっていなければデモ自体が成立しない。発表前に確認が必須。
-  3. 「pastebin 風のドメインがブロックされる」デモは分類器の判定に依存し、再現性が保証されない。
-- **既出チェック**: 重複なし。
-- **参考点**: 新しさ 4 / 実務 3 / 15 分 3 / デモ 3 = 13
+**判定: スコアは据え置き（15）。追加は 1 行まで**
 
-## P4: 無人実行・CI で Claude Code を安全に動かす権限設定
+- critic 側で changelog の原文を確認した。
+  - 2.1.331: "Changed what a `PermissionDenied` hook's `retry: true` tells Claude: make the refused call again only if you asked for that call" — 一致。
+  - 2.1.331: "Changed in a future release, on or after November 30, 2026: plugin marketplaces in managed `extraKnownMarketplaces` will auto-update by default. To opt one out, set `"autoUpdate": false` on its entry" — 一致。ただしこれは**プラグインの話で、許可確認の話ではない**。TOP2 の要点 3 つから外れる。入れるとしても「managed settings を配る Owner 向けの注意」として 1 行にとどめる。
+  - 2.1.330: "Changed more `rm` commands aimed at the root, home, a top-level folder or the working folder to ask for approval; where nobody can answer, they're refused" — 一致。無人実行パートと直接関係するので、入れる価値がある。
+  - 補足（practitioner が挙げていない項目）: 2.1.331 [VSCode]「`allowManagedPermissionRulesOnly` が設定されている場合、許可カードは Yes / No だけを表示」。managed settings で配布する話と関係するが、VS Code に限った話なので補足止まり。
+- **新しい問題**: P1 の登場で、TOP2 は「Claude Code の 2 枠目」を P1 と争う立場になった。TOP2 は社内で auto mode が組織設定で有効なことが条件のままで、この確認が取れていない。確認が取れなければ P1 に差し替えるべき。
 
-**判定: 条件付き（P3 と統合）**
+### `/loop`（TOP1 に吸収済み）
 
-- **根拠の確からしさ**: changelog の 5 項目はすべて critic 側で原文を確認した。版と日付も一致。
-  - 2.1.314（10/30）`blockWritesOutsideWorkingDirectories`: Write / Edit / NotebookEdit が対象。Bash 経由の書き込みは対象外と読める。デモの「`/tmp` 以外の範囲外書き込みが拒否される」は、`claude -p` が Bash で書いた場合には拒否されない可能性がある（推測）。settings-reference での確認が必須。
-  - 2.1.319 `denyInsteadOfPrompting`、2.1.318 `loginExpiresAt` / `credential_expires_at`（claude.ai サインインの期限）、2.1.328 `mcp_tool` hook の `onFailure: block`、2.1.327 `mcp add-json <name> -`: いずれも一致。
-- **弱点**:
-  1. 5 つの設定を並べた構成は changelog の読み上げで、要点 3 つ以内に収まっていない。
-  2. 対象が狭い。Claude Code を無人実行・CI で回している人は、社内ではインフラや一部の人に限られると推測。実務への効きは 2。
-  3. `credential_expires_at` は claude.ai サインインの話で、API キーで動く CI には関係しない。対象をさらに狭めている。
-- **既出チェック**: 重複なし。
-- **参考点**: 新しさ 5 / 実務 2 / 15 分 3 / デモ 4 = 14
-
-### P3 + P4 統合案
-
-タイトル案は「Claude Code の許可確認との付き合い方: 対話は auto mode、無人は deny 設定」。要点は次の 3 つ。
-1. 対話: `/auto-mode-setup` で信頼する範囲を教え、`permissions.ask` で push と PR 作成だけは人が確認する
-2. 無人: `denyInsteadOfPrompting` と `blockWritesOutsideWorkingDirectories` で「止まらない・はみ出さない」
-3. 確認: `/permissions` の Recently blocked と `claude auto-mode critique`
-
-認証期限・MCP hook・`add-json` は 1 枚のスライドで補足する程度に落とす。統合後の参考点は 4/3/4/4 = 15 程度。社内で auto mode が有効かどうか（Team の組織設定）を確認できることが条件。
-
-## P5: `/usage` 改善と idle compaction
-
-**判定: 却下（単独枠として）。1〜2 分の Tips としてほかの枠に入れるのは可**
-
-- **根拠の確からしさ**: 2.1.305（10/20）の `f` でまとめて修正、2.1.299（10/14）の idle compaction と `"idleCompaction": false`、2.1.314 の VS Code / Desktop への拡大、2.1.316 の Opus 4.8 fast mode の非推奨化（11/30 で削除）: すべて一致。`/skill-doctor`（Week 36、9 月）は critic 側では未確認で、対象期間外。
-- **却下理由**:
-  1. **中身が薄い**: `f` キー 1 つと、何もしなくても自動で動く idle compaction。15 分を埋める要点がない。
-  2. **デモ結果が予測できない**: practitioner 自身が「何が出るかは事前に分からない」と書いている。CLAUDE.md の「30 分以内に準備できるデモ」の基準を満たす保証がない。
-  3. **すぐ古くなる**: fast mode の削除は 2026-11-30。勉強会の開催日は不明だが、それ以降なら話題として成立しない。
-  4. **前提が推測**: 「すぐ上限に達するのは Team プラン利用者に共通の悩み」には根拠がない（CLAUDE.md にも backlog にも記載なし）。
-  5. idle compaction の対象は 200K トークン以上の会話だけで、多くの利用者には関係が薄い。
-- **既出チェック**: 重複なし。ただし Claude 関連が 5 件目になる偏りを強める。
-- **参考点**: 新しさ 4 / 実務 3 / 15 分 4 / デモ 2 = 13
+- 2.1.331 "Fixed auto mode sometimes refusing Claude's call to stop a /loop, which left the next wake-up to fire" を確認した。practitioner の要約と一致。デモで使うなら 2.1.331 以上にする、という注意は妥当。スコアへの影響はない。
+- 2.1.330 [VSCode] "Fixed a forked conversation running the original conversation's `/loop` schedules a second time" もある。P1 の `/fork` と `/loop` を同じデモで使う場合は 2.1.330 以上にすること。
 
 ---
 
 ## 取得できなかった URL / 未確認のもの
 
 critic 側で取得に失敗したもの:
-- https://geminicli.com/docs/changelogs/ （ENOTFOUND。セッションのネットワーク許可外）
+- https://knowledge.workspace.google.com/admin/generative-ai/gemini-app/prepare-for-the-transition-to-skills — `getaddrinfo ENOTFOUND knowledge.workspace.google.com`（セッションのネットワーク許可外）
+- https://docs.github.com/en/integrations/how-tos/using-github-event-streams — `getaddrinfo ENOTFOUND docs.github.com`（同上）
+- https://raw.githubusercontent.com/flutter/website/main/src/content/packages-and-plugins/swift-package-manager/for-app-developers.md — HTTP 404（パスを推測したため）
 
-ネットワーク制約により critic 側で試していないもの（ほかのエージェントが ENOTFOUND を報告済み、または同じ系統）:
-- https://docs.flutter.dev/release/release-notes/release-notes-3.50.0
-- https://dart.dev/guides/whats-new
+ENOTFOUND が続いたため、critic 側で取得を試していないもの（ほかのエージェントが ENOTFOUND を報告済み、または同じ系統）:
+- https://knowledge.workspace.google.com/admin/generative-ai/gemini-app/about-the-transition-to-skills
+- https://workspaceupdates.googleblog.com/2026/11/share-skills-add-files-from-Drive-Notebook-Photos-to-skills-Gemini-app.html
+- https://github.blog/changelog/2026-11-17-github-event-streams-is-now-in-preview （v2.105.0 のリリースからリンクされている）
+- https://docs.flutter.dev/packages-and-plugins/swift-package-manager/for-app-developers （検索結果に出たが未取得）
+- https://flutter.dev/blog/saying-goodbye-to-cocoapods-swift-package-manager-is-soon-the-default-in-flutter （検索結果のみ）
+- https://blog.cocoapods.org/CocoaPods-Specs-Repo （公開ページ。_config.yml から推定した URL）
 - https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/
-- https://verygood.ventures/blog/flutter-3-50-dart-3-14.md
-- https://blog.cloudflare.com/vinext-nextjs-on-vite/
-- https://infoq.com/news/2026/10/cloudflare-viteplus-stable
-- https://blog.cocoapods.org/CocoaPods-Trunk/ ほか（read-only の日付は検索結果の要約のみ）
+- https://www.revenuecat.com/docs/sdk-guides/flutter-cocoapods-to-spm-migration
+- https://developers.google.com/ads/blog/posts/2026/11/prepare-for-cocoapods-read-only-mode
 
 critic 側で取得・確認できたもの:
-- https://code.claude.com/docs/en/changelog （offset 0〜400000。2.1.299〜2.1.330 の該当項目）
-- https://code.claude.com/docs/en/code-review.md
-- https://code.claude.com/docs/en/code-review-pull-requests.md
-- https://code.claude.com/docs/en/auto-mode-config.md
-- https://github.com/google-gemini/gemini-cli/releases
-- https://github.com/cloudflare/vinext
-- https://raw.githubusercontent.com/flutter/flutter/stable/CHANGELOG.md
-- https://raw.githubusercontent.com/dart-lang/sdk/stable/CHANGELOG.md （main ブランチ版も参照）
+- https://code.claude.com/docs/en/changelog （offset 0〜100000。2.1.330 / 2.1.331 の全項目）
+- https://github.com/cli/cli/releases/tag/v2.105.0
+- https://raw.githubusercontent.com/CocoaPods/blog.cocoapods.org/master/_posts/2024-11-30-CocoaPods-Specs-Repo.markdown
+- https://raw.githubusercontent.com/CocoaPods/blog.cocoapods.org/master/_config.yml
+- https://raw.githubusercontent.com/flutter/flutter/stable/CHANGELOG.md （offset 0〜100000。SwiftPM / CocoaPods の記載を検索）
 
-critic 側で再取得していないもの（practitioner は確認済みとしている）: code-review-local.md、scheduled-tasks.md、whats-new.md。settings-reference.md はどちらも未確認。
+critic 側で再取得していないもの（trend-scout は確認済みとしている）: https://github.com/google-gemini/gemini-cli/releases 、https://raw.githubusercontent.com/CocoaPods/blog.cocoapods.org/master/_posts/2026-02-18-CocoaPods-Trunk-Security-Thanks.markdown
 
-再実行の提案: github.com / raw.githubusercontent.com は取得できるので、trend-scout は一次情報の代わりとして GitHub 上の CHANGELOG やリリースを使えば根拠を補強できる。
+検索結果の要約だけで扱ったもの: 「Flutter 3.44 から SwiftPM が既定」（WebSearch の要約。出典として docs.flutter.dev、flutter.dev blog、dev.classmethod.jp/articles/flutter_cocoapods_swiftpm/ が挙がっている）
+
+ネットワーク許可の提案（前回の提案に追加）: knowledge.workspace.google.com、docs.github.com、flutter.dev

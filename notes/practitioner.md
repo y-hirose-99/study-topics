@@ -1,131 +1,105 @@
 # practitioner（実務適用）調査メモ
 
-- 調査日: 2026-11-23（JST）
-- 対象期間: 2026-10-20 以降（初回）
+- 調査日: 2026-11-24（JST）
+- 対象期間: 前回レポート（reports/2026-11-23.md、対象 2026-10-20〜2026-11-23）以降。前回から 1 日しか経っていないため、前回の調査で拾えていなかった 11 月中旬以降の実務ネタも含める
 - 観点: 「明日から業務で試せるか」。新しさより持ち帰りやすさを優先
-- 重複チェック: CLAUDE.md の過去テーマ 3 件、backlog.md（候補・採用・却下ともに空）と照合済み
+- 重複チェック: CLAUDE.md の過去テーマ 3 件、backlog.md の候補・却下（/code-review、auto mode・無人権限設定、CocoaPods trunk、Gemini CLI→Antigravity CLI、Vite+/Vinext、/usage・idle compaction、/loop）と照合済み
+- 結論: 新規候補は 3 件（うち 1 件は一次情報の本文を確認できておらず条件付き）。5 件には満たないため、無理に埋めていない
 
-## 注意（偏りについて）
+## 注意（ネットワーク制約）
 
-今回のセッションでは github.blog / workspaceupdates.googleblog.com / verygood.ventures が DNS 解決できず（ネットワーク許可外）、
-一次情報を取得・確認できたのは code.claude.com（Claude Code 公式ドキュメント・changelog）のみ。
-そのため 5 件すべてが Claude Code 関連になっている。Flutter / Gemini / GitHub 側の話題は「未確認の手がかり」として末尾に記載する。
-リード側で他エージェントの候補と組み合わせてバランスを取ってほしい。
+前回と同じく nulab.com / workspaceupdates.googleblog.com / github.blog は DNS 解決できなかった（ENOTFOUND、セッションのネットワーク許可外と推測）。
+一次情報を本文まで確認できたのは code.claude.com と github.com（cli/cli の Releases）だけ。
+Google Workspace 系の候補は、公式 URL は検索結果に出ているものの本文は未確認（検索結果の要約のみ）。
 
 ---
 
-## 候補 1: `/code-review` の新しい重要度ラベルと `--fix` で「PR 出す前のセルフレビュー」を定着させる
+## 候補 1: VS Code の中で Claude Code を「エラー → 修正」「コンフリクト解消」に直結させる（2.1.330 / 2.1.331 の VS Code 拡張の新機能）
 
-- **概要**: Claude Code の `/code-review` が、指摘を Important / Pre-existing / Nit に分類し、最後に修正案を出すようになった。`--fix` で作業ツリーに直接適用、`--comment` で GitHub PR にインラインコメント投稿できる。どのプランでも使え、バックグラウンドのサブエージェントで動くので作業を止めずに済む。
-- **何が新しいか（日付）**: 2.1.328（2026-11-19）で重要度ラベルと修正案の提示に変わった。`/simplify` は見た目の整理専用として分けられた。関連して、マネージド版 Code Review（GitHub App）に Quick / Standard / Deep のレビューレベルが入り（2.1.304、2026-10-19）、`@claude review stop`（2.1.307、2026-10-21）と費用 CSV 出力（2.1.323、2026-11-12）も追加されている。
-- **想定対象者**: モバイル / Web / インフラ全員（GitHub でPR を出す人すべて）
-- **参加者が持ち帰れるもの**: `/code-review` → `--fix` → PR 作成、という手順と、Important 件数で CI を止める `gh api` + jq のワンライナー
+- **タイトル案**: 「Fix with Claude Code」と「Resolve Merge Conflicts」— VS Code 拡張の右クリックだけで Claude に仕事を渡す
+- **概要**: 2.1.331（2026-11-23）で、VS Code のエラー・警告のクイックフィックスと、失敗したテスト（test peek / Test Results ビュー）に「Fix with Claude Code」が追加され、問題の内容がそのままチャット欄に入るようになった。同じ版で、コンフリクトのあるファイルのタイトルバーと Source Control の Merge Changes に「Resolve Merge Conflicts」、変更ファイルの右クリックに「Add to Chat」が付いた。2.1.330（2026-11-20）では `/fork` や、Escape で止めない `claudeCode.escapeStopsClaude` などの設定が増えている。
+- **参加者が持ち帰れるもの**: エラー・失敗テスト・コンフリクトを「コピペせずに」Claude に渡す 3 つの右クリック操作と、おすすめ設定 3 つ（`escapeStopsClaude` / `pinPrompt` / `contextUsageThreshold`）
 - **15 分構成案**:
-  1. （4 分）ローカル `/code-review` と、組織で有効化するマネージド版 Code Review の違い（費用・設定する人・レビューを起動するタイミング）
-  2. （7 分）デモ: バグを仕込んだブランチで `/code-review` → 重要度ラベルを確認 → `/code-review --fix` で修正 → `HEAD~3..HEAD` のように対象を範囲指定する
-  3. （4 分）チーム運用: プロジェクトのルールを CLAUDE.md に書いておく（`/code-review` も CLAUDE.md を読む）、Important 件数を check run から読み取って CI を止める方法
-- **30 分以内で準備できるデモ案**: 小さな Flutter または Web のサンプルリポジトリに、null 参照や境界値のバグを 2〜3 個仕込んだ commit を作り、`/code-review` → `/code-review --fix` を実演する。準備はブランチ作成だけ。
+  1. （3 分）ターミナル版との違い: VS Code 拡張だとエディタの情報（診断・テスト結果・Source Control）をそのまま渡せる
+  2. （8 分）デモ: (a) 型エラーのクイックフィックスから「Fix with Claude Code」 (b) 失敗テストの Test Results から修正 (c) わざと作ったマージコンフリクトを「Resolve Merge Conflicts」で解消し、差分を確認して Accept
+  3. （4 分）2.1.331 で diff の保存動作が変わった点（右側の提案を触ってから保存しないと accept されない）と、おすすめ設定の紹介
+- **30 分以内で準備できるデモ案**: Web（TypeScript）の小さなリポジトリに、型エラー 1 つ、失敗するテスト 1 つ、2 ブランチで同じ行を変えたコンフリクトを用意する。拡張機能を 2.1.331 以上に更新しておく
+- **想定対象者**: VS Code を使う Web / モバイル（Flutter を VS Code で書いている人）/ インフラ（Terraform など）
 - **根拠 URL（取得・確認済み）**:
-  - https://code.claude.com/docs/en/code-review-local.md
-  - https://code.claude.com/docs/en/code-review-pull-requests.md
-  - https://code.claude.com/docs/en/changelog （2.1.304 / 2.1.307 / 2.1.323 / 2.1.328 の項目）
-- **推測部分**: マネージド版 Code Review が Team プランで使えるかは、今回確認したページでは分からなかった。デモはどのプランでも動くローカル版 `/code-review` を前提にするのが安全。
+  - https://code.claude.com/docs/en/changelog （2.1.330 = 2026-11-20、2.1.331 = 2026-11-23 の [VSCode] 項目）
+- **重複チェック**: backlog の /code-review・auto mode・/loop・/usage とは別機能。過去テーマ「Claude を使った Flutter モバイル開発の実践」と見た目が重ならないよう、デモは Flutter 以外のリポジトリにする
+- **推測部分**: 「Fix with Claude Code」が Dart / Flutter の Analyzer 診断や Flutter のテストビューでも同様に出るかは未確認（VS Code の標準の診断・テスト API に乗っていれば出ると推測）。Android Studio 利用者には効かない
 
 ---
 
-## 候補 2: `/loop` と `loop.md` で「PR と CI の見張り」を Claude に任せる
+## 候補 2: `gh event listen` で「CI 終わった？レビュー来た？」のポーリングをやめる（GitHub CLI v2.105.0、preview）
 
-- **概要**: `/loop 5m <prompt>` で決まった間隔、`/loop <prompt>` で Claude が間隔を自分で決めて、セッション内でプロンプトを繰り返し実行できる。`.claude/loop.md` にチーム共通の見張り手順（CI が赤なら原因を調べて最小修正、レビューコメントに対応、など）を書いておけば、引数なしの `/loop` だけで同じ動きを再現できる。
-- **何が新しいか（日付）**: 2.1.326〜2.1.330（2026-11-16〜20）で、定期タスクと `/loop` の上限が 7 日から 30 日に延びた（changelog による）。2.1.329（2026-11-19）で `/tasks` に定期タスク・`/loop` の次回起動・goal・fork がまとめて表示されるようになり、`x` で止められる。2.1.319（2026-11-06）では終わったサブエージェントが `/tasks` に残り、あとから話しかけられるようになった。
-- **想定対象者**: Web / モバイル（PR 対応）、インフラ（デプロイ完了待ち）
-- **参加者が持ち帰れるもの**: そのまま使える `.claude/loop.md` のテンプレートと、`remind me at 15:03 ...` のような一回限りリマインダーの使い方
+- **タイトル案**: `gh event listen` — PR のレビュー・CI 完了を「待つ」シェルスクリプトとエージェント
+- **概要**: GitHub CLI v2.105.0（2026-11-18）で、GitHub Event Streams（preview）を使う `gh event` コマンド群が追加された。`gh event listen` で PR に対する特定のイベント（レビュー提出、check suite 完了、PR の状態・head の変更、マージコンフリクト）をポーリングなしで待てる。既定では最初のイベントで終了し、`--count` / `--follow` / タイムアウト / `--jq` を指定できる。出力は CloudEvent 形式の JSON。`gh run view` / `gh run watch` からも check suite イベントが提案される。
+- **参加者が持ち帰れるもの**: 「PR の CI が終わったら通知 / 次の処理へ」をポーリングなしで書く 1 行のシェルレシピ
 - **15 分構成案**:
-  1. （3 分）クラウド / Desktop / `/loop` の 3 種類の定期実行の使い分け（公式の比較表を使う）
-  2. （8 分）デモ: CI が落ちる PR に対して `/loop check whether CI passed and address any review comments` を起動 → `/tasks` で状態を確認 → 止める
-  3. （4 分）`loop.md` をチームで共有する際の注意（権限確認を通ること、繰り返しタスクの起動時刻が最大 30 分ずれること、毎時 :00 / :30 を避ける）
-- **30 分以内で準備できるデモ案**: わざと失敗するテストを含む PR を GitHub 上に用意し、`/loop 1m` で CI の結果を見張らせる。待ち時間を短くするため、GitHub Actions は数十秒で終わるジョブにしておく。
+  1. （3 分）`gh run watch` や `sleep` ループのポーリングとの違い、preview の制約（ウェイトリスト）
+  2. （8 分）デモ: PR を push → 別ターミナルで `gh event listen`（check suite 完了を待つ）→ CI 完了の瞬間に JSON が出て、`--jq` で結論だけ取り出して `notify-send` や Google Chat の Webhook に渡す
+  3. （4 分）応用: レビュー提出を待って Claude Code などのエージェントに次の作業を渡す、`gh event subscription list` で購読を管理する
+- **30 分以内で準備できるデモ案**: 数十秒で終わる GitHub Actions を持つテスト用リポジトリで PR を作り、`gh` を v2.105.0 以上に更新して `gh event listen` を実行する。**ただし preview のウェイトリストに通っていることが前提**
+- **想定対象者**: GitHub で PR を出す全員、CI を整備するインフラ担当
 - **根拠 URL（取得・確認済み）**:
-  - https://code.claude.com/docs/en/scheduled-tasks.md
-  - https://code.claude.com/docs/en/changelog （2.1.319 / 2.1.329 / 2.1.326〜330 の項目）
-- **推測部分**: 確認した時点の scheduled-tasks ドキュメントは「7 日で期限切れ」のままで、changelog の「30 日」と食い違っている。ドキュメントの更新が遅れていると推測。発表前に `claude --version` と実際の動作で確認すること。
+  - https://github.com/cli/cli/releases/tag/v2.105.0 （2026-11-18）
+  - https://github.com/cli/cli/releases （v2.103.0 の expiring OAuth トークン preview、v2.104.0 の `gh repo delete` の確認強化も記載）
+- **重複チェック**: backlog の `/loop` で CI を見張る案（TOP1 に吸収済み）と目的が近い。`/loop` は Claude セッション内のポーリング、こちらは GitHub 側からのイベント通知で、仕組みも持ち帰るものも違う。ただしリードの判断で「CI 見張り」枠として TOP1 と統合する余地はある
+- **推測部分・条件**:
+  - リリースノートは「GitHub Event Streams is in preview」とし、ウェイトリストへのリンクがある。**社内アカウント / org で使えるかは未確認**で、使えなければデモ不可
+  - 有効化手順・必要な権限・料金は、リリースノートからリンクされた Event Streams のドキュメント（docs.github.com / github.blog と推測。未取得）を確認する必要がある
+  - リリースノートの全文は引用制限のため要約で確認した。具体的なフラグ名（イベント種別の指定方法など）は `gh event listen --help` で確認すること
 
 ---
 
-## 候補 3: 「auto mode が止まりすぎる」を解消する `/auto-mode-setup` と `claude auto-mode critique`
+## 候補 3（条件付き）: Gem から skills への移行に備える — Gemini アプリの skills 共有と Drive ファイル添付
 
-- **概要**: auto mode は、分類器が許可確認の代わりに安全チェックをするモード。初期状態では作業ディレクトリと remote しか信頼しないため、社内の GitHub org や社内ドメインへのアクセスが止められやすい。`/auto-mode-setup` は CLAUDE.md・git remote・最近実行したコマンドを読んで `autoMode.environment` の下書きを作る。`claude auto-mode critique` は自分で書いたルールのあいまいな箇所を指摘してくれる。
-- **何が新しいか（日付）**: 2.1.304（2026-10-19）で `/auto-mode-setup` が追加され、feature flag を取得しない環境やサードパーティプロバイダでも使えるようになった。2.1.326（2026-11-16）と 2.1.328（2026-11-19）では、ルート・ホーム・作業フォルダを狙う `rm` の承認必須化など、auto / bypass モードの許可確認が厳しくなっている（アップデート後に「急に確認が増えた」という人向けの話にもなる）。
-- **想定対象者**: Claude Code を使う全員。とくにインフラ（社内ドメイン、バケット）
-- **参加者が持ち帰れるもの**: `git push` と `gh pr create` だけは人が確認する `permissions.ask` のレシピと、`autoMode.environment` の書き方テンプレート
+- **タイトル案**: 社内の Gem、来年どうなる？ Gemini の skills への移行準備と、チームで skills を共有する方法
+- **概要**: Google Workspace の管理者ヘルプ「Prepare for the transition to skills」（最終更新 2026-11-09）で、Gemini アプリの Gem が skills に移行する方針と、管理者・作成者向けの準備手順（不要な Gem の削除、重要な Gem の手動での作り直し、Workspace Studio の「Ask a Gem」ステップの置き換え）が示されている。2026-11-16 の Workspace Updates では、Gemini アプリの skills を View / Edit 権限で共有できるようになり、Drive・Gemini Notebook・Google Photos のファイルを skills に添付できるようになったとされる。
+- **参加者が持ち帰れるもの**: 自分が作った Gem の棚卸しチェックリストと、よく使う Gem を skills に作り直して同僚に共有する手順
 - **15 分構成案**:
-  1. （4 分）許可確認の多さと安全性のバランス。ask / deny / auto mode 分類器の評価順序
-  2. （7 分）デモ: `/auto-mode-setup` で下書きを作る → `claude auto-mode config` で反映を確認 → `claude auto-mode critique` で講評をもらう
-  3. （4 分）`/permissions` の Recently blocked タブで止められた操作を確認し、environment に足すか allow に足すかを判断する
-- **30 分以内で準備できるデモ案**: 社内 GitHub org を remote に設定したダミーリポジトリで `/auto-mode-setup` を実行。社外の pastebin 風ドメインへの送信が止められる様子と、社内ドメインを environment に加えたら通る様子を対比する。
-- **根拠 URL（取得・確認済み）**:
-  - https://code.claude.com/docs/en/auto-mode-config.md
-  - https://code.claude.com/docs/en/changelog （2.1.304 / 2.1.326 / 2.1.328 の項目）
-- **推測部分**: Team プランで組織管理者が auto mode をオフにしているかどうかは社内設定次第で、今回は確認していない。ドキュメントには Team プランで組織単位の制御がある旨が書かれている。
+  1. （4 分）Gem と skills の違い、移行のスケジュール（自動移行の 30 日以上前に管理者へ通知、とされる）
+  2. （7 分）デモ: よく使う Gem（例: Backlog 課題の文面整形、議事録要約）を skills として作り直し → Drive の社内ガイドラインを添付 → 同僚に View 権限で共有
+  3. （4 分）注意点: 当初は英語のみ、Gemini アプリと Workspace アプリの skills は同期しない、Drive ファイルは受け取り側にもアクセス権が必要
+- **30 分以内で準備できるデモ案**: 既存の Gem 1 つを skills に移し、Drive のドキュメントを 1 つ添付して別アカウントに共有する。**社内テナントで skills が展開済みであることが前提**
+- **想定対象者**: Gemini を使う全員（エンジニア以外にも効く）。Workspace 管理者
+- **根拠 URL（いずれも本文は未取得。検索結果の要約のみ）**:
+  - https://knowledge.workspace.google.com/admin/generative-ai/gemini-app/prepare-for-the-transition-to-skills （2026-11-09 更新）
+  - https://knowledge.workspace.google.com/admin/generative-ai/gemini-app/about-the-transition-to-skills
+  - https://workspaceupdates.googleblog.com/2026/11/share-skills-add-files-from-Drive-Notebook-Photos-to-skills-Gemini-app.html （2026-11-16）
+- **重複チェック**: backlog の「Gemini CLI → Antigravity CLI」とは別製品（こちらは Gemini アプリ / Workspace）
+- **推測部分・条件**:
+  - 上の URL は公式ドメインだが、本文を取得できていない。根拠ルール上は「一次情報が未確認」として、リード側で新しさ・実務への効きの減点を検討してほしい
+  - **skills は当初英語のみ**とされている。日本語運用の社内で実用になるかは要確認で、ここが最大のリスク
+  - 「Skills will replace Gems in 2027」とする記述もあり、移行時期は出典によって食い違う。発表前に管理者ヘルプで最新日付を確認すること
+  - 社内の Workspace エディションで skills が使えるか（検索要約では Workspace 側の skills は Business Starter / Standard / Plus が対象）は未確認
 
 ---
 
-## 候補 4: 無人実行・CI で Claude Code を安全に動かす権限設定（10〜11 月の新設定まとめ）
+## 既出候補の更新情報
 
-- **概要**: スケジュール実行や `claude -p` のような無人実行では、許可確認で止まる、または意図しない書き込みが起きることが課題になる。10〜11 月に、作業ディレクトリ外への書き込み禁止、確認待ちを拒否扱いにして処理を続ける設定、MCP hook の失敗時ブロックなどが追加された。
-- **何が新しいか（日付）**:
-  - `permissions.blockWritesOutsideWorkingDirectories`（2.1.314、2026-10-30）: どの権限モードでも Write / Edit が作業ディレクトリ外を拒否する
-  - `permissions.denyInsteadOfPrompting`（2.1.319、2026-11-06）: 確認待ちになる操作を拒否し、ターンを続ける
-  - `claude auth status` の `loginExpiresAt` と `claude -p` JSON の `credential_expires_at`（2.1.318、2026-11-04）: 認証期限を監視できる
-  - `mcp_tool` hook の `"onFailure": "block"`（2.1.328、2026-11-19）
-  - `claude mcp add-json <name> -`（2.1.327、2026-11-17）: トークンをシェル履歴に残さずに MCP を登録できる
-- **想定対象者**: インフラ、CI を整備する人、Claude を定期実行している人（この勉強会ネタ調査自体も無人実行）
-- **参加者が持ち帰れるもの**: 無人実行用の `settings.json` 雛形（上の 2 つの permissions と allow ルールを組み合わせたもの）
-- **15 分構成案**:
-  1. （3 分）無人実行でよくある失敗（確認待ちで止まる、範囲外への書き込み、認証切れ）
-  2. （8 分）デモ: `denyInsteadOfPrompting` を付けた `claude -p` で、確認が必要な操作が止まらず拒否されて処理が続く様子。`blockWritesOutsideWorkingDirectories` で `/tmp` 以外の範囲外書き込みが拒否される様子
-  3. （4 分）`credential_expires_at` を監視して認証切れを事前に検知する、`mcp add-json -` で秘密情報を扱う
-- **30 分以内で準備できるデモ案**: 空ディレクトリで `.claude/settings.json` に 2 設定を書き、`claude -p "../outside.txt に書いて"` を実行して拒否の挙動を見せる。JSON 出力から `credential_expires_at` を jq で取り出す。
-- **根拠 URL（取得・確認済み）**:
-  - https://code.claude.com/docs/en/changelog （2.1.314 / 2.1.318 / 2.1.319 / 2.1.327 / 2.1.328 の項目）
-  - https://code.claude.com/docs/en/auto-mode-config.md （ask / deny と分類器の関係）
-- **推測部分**: 各設定の詳しい挙動は changelog の 1 行説明しか確認していない（settings-reference の該当項目は未取得）。デモ前に https://code.claude.com/docs/en/settings-reference.md で確認すること。
-
----
-
-## 候補 5: Claude Team プランの使用量を節約する: `/usage` のワンキー改善とアイドル時の自動要約（idle compaction）
-
-- **概要**: 「すぐ上限に達する」は Team プラン利用者に共通の悩み。`/usage` はスキル・サブエージェント・プラグイン・MCP ごとに使用量の内訳を出し、10 月からは改善案を `f` キーで適用できる。長い会話を放置するとプロンプトキャッシュが切れる前に自動で要約する idle compaction も入った。
-- **何が新しいか（日付）**:
-  - `/usage` のワンライン改善を `f` で適用（2.1.305、2026-10-20）
-  - ターミナルの idle compaction（2.1.299、2026-10-14。`"idleCompaction": false` で無効化できる）、VS Code と Desktop の Code タブにも拡大（2.1.314、2026-10-30）
-  - 関連: Opus 4.8 の fast mode は 2026-11-30 で終了し、Opus 5.5 への移行が案内されている（2.1.316、2026-10-31）。月末の切り替えを前に話題にしやすい
-- **想定対象者**: Claude を使う全員
-- **参加者が持ち帰れるもの**: 自分の `/usage` を見て、使われていない MCP やスキルを外すチェックリスト
-- **15 分構成案**:
-  1. （3 分）使用量を食う要因（コンテキストの肥大化、キャッシュ切れ、常時読み込まれる MCP やスキル）
-  2. （8 分）デモ: 自分の環境で `/usage` を開く → 改善案を `f` で適用 → `/skill-doctor`（2026 年 9 月追加）でスキルごとのコストを確認
-  3. （4 分）idle compaction の動きと無効化方法、fast mode 終了（11/30）への対応
-- **30 分以内で準備できるデモ案**: MCP サーバやスキルを多めに入れた環境を用意して `/usage` を開き、改善案の適用前後を見せる。
-- **根拠 URL（取得・確認済み）**:
-  - https://code.claude.com/docs/en/changelog （2.1.299 / 2.1.305 / 2.1.314 / 2.1.316 の項目）
-  - https://code.claude.com/docs/en/whats-new.md （/usage は Week 21、/skill-doctor は Week 36）
-- **推測部分**: `/usage` が出す改善案の具体的な中身は環境によって変わるため、デモで何が出るかは事前に分からない。リハーサルで確認すること。
-
----
+| 既出候補 | 新情報 | 根拠 | 評価への影響（推測） |
+|---|---|---|---|
+| `/code-review`（TOP1） | 2.1.330 / 2.1.331 に `/code-review` 関連の変更なし | https://code.claude.com/docs/en/changelog | 変化なし |
+| `/code-review` に吸収した `/loop` | 2.1.331（11/23）で「auto mode が `/loop` の停止を拒否し、次の起動が走ってしまう」不具合が修正された。デモで auto mode + `/loop` を使う場合は 2.1.331 以上を使うこと | 同上 | デモの安定性がわずかに上がる |
+| auto mode・無人権限設定（TOP2） | 2.1.330（11/20）で、ルート・ホーム・トップレベル・作業フォルダを狙う `rm` の承認必須化がさらに拡大され、「応答できる人がいない場合は拒否」と明記された。2.1.331（11/23）では `PermissionDenied` hook の `retry: true` の意味が変わり、managed の `extraKnownMarketplaces` のプラグインマーケットプレイスが 11/30 以降の版で既定で自動更新になる予定（`"autoUpdate": false` で除外） | 同上 | 無人実行の話に「11/30 以降の自動更新」を 1 枚追加できる。スコアは据え置きと推測 |
+| CocoaPods trunk read-only（TOP3） | 検索要約では、Flutter 公式ドキュメント（SwiftPM for app developers）にも「CocoaPods registry は 2026-12-02 に read-only」「将来 SwiftPM を無効化できなくなる」と書かれているとされる。また SwiftPM の既定化は **3.50 ではなく 3.44 から**とされている。RevenueCat の移行ガイドも同じ日付 | https://docs.flutter.dev/packages-and-plugins/swift-package-manager/for-app-developers （未取得・検索要約）、https://www.revenuecat.com/docs/sdk-guides/flutter-cocoapods-to-spm-migration （未取得・検索要約） | 日付の裏付けが 1 段強くなるが、一次情報は依然として本文未確認。レポートの「3.50 の時期に」という書き方は「3.44 から既定」に直すべき可能性がある |
+| Gemini CLI → Antigravity CLI（保留） | 新情報なし（今回は追加調査していない） | — | — |
 
 ## 取得できなかった URL
 
-| URL | 状況 |
+| URL | エラー |
 |---|---|
-| https://github.blog/changelog/month/10-2026/ | DNS 解決できず（ENOTFOUND。セッションのネットワーク許可外） |
-| https://verygood.ventures/blog/flutter-3-50-dart-3-14.md | DNS 解決できず（ENOTFOUND） |
-| https://workspaceupdates.googleblog.com/2026/11/expanding-gemini-in-gmail-to-more-Google-Workspace-users.html?m=1 | DNS 解決できず（ENOTFOUND） |
+| https://nulab.com/whats-new/backlog/ | getaddrinfo ENOTFOUND nulab.com（ネットワーク許可外と推測） |
+| https://workspaceupdates.googleblog.com/2026/11/ | getaddrinfo ENOTFOUND workspaceupdates.googleblog.com |
+| https://github.blog/changelog/month/11-2026/ | getaddrinfo ENOTFOUND github.blog |
 
-上の 3 ホストで失敗したため、ツールの指示に従い、それ以外の新しいホスト（docs.flutter.dev、workspace.google.com など）への取得は試していない。
+上記 3 ホストが ENOTFOUND で失敗したため、ツールの指示に従い、それ以外の新しいホスト（knowledge.workspace.google.com、docs.flutter.dev、www.revenuecat.com、docs.github.com など）は取得を試していない。候補 3 と CocoaPods の更新情報は検索結果の要約に基づく。
 
-## 未確認の手がかり（検索結果の要約のみ。候補には採用していない）
+## 未確認の手がかり（候補化していない）
 
-ネットワークの許可が出たら、一次情報を確認したうえで候補化を検討する。
-- Flutter 3.50 / Dart 3.14: 2026 年 11 月の stable 予定。第三者記事（2026-11-11）では公開済みとされている。モバイル（Flutter）チーム向けとして本来は有力
-- Gemini in Gmail の対象拡大: Workspace Updates ブログ（2026-11-10）とされるが、本文は未確認。既存機能の対象拡大で、新機能ではないとの報道もある
-- GitHub: stacked pull requests の GA、secret scanning の検出対象追加（2026 年 10 月上旬とされる）。新しさの面では対象期間の少し前
+- Backlog: ITmedia（2026-07-24）によると、プロジェクト横断ガントチャートが「2026 年秋ごろ」リリース予定。2026-12-31 に現行プランの新規契約が終わり、2027-01-01 から新プラン（Economy / Business / Professional）に移る。11 月にリリースされたかは nulab.com が取得できず未確認。リリースされていれば Backlog 利用者向けの実務ネタになり得る（出典: https://atmarkit.itmedia.co.jp/ait/articles/2607/24/news048.html 、未取得）
+- Google Workspace: Gemini in Slides の複数スライド生成の上限緩和が少なくとも 2026-12-01 まで、AI Inbox の有料 Workspace への拡大（いずれも検索要約のみ）
+- GitHub CLI v2.103.0（2026-10-21）の expiring / auto-refreshing OAuth トークン（preview）: 無人実行のトークン管理の話として、TOP2 の補足に使える可能性

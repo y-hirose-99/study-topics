@@ -5,10 +5,11 @@
 ## 候補（未採用）
 | 追加日 | タイトル | スコア | 状態 | メモ |
 |---|---|---|---|---|
-| 2026-11-23 | `/code-review` 重要度ラベル + `--fix` でセルフレビュー定着（+ `/loop` で CI 見張り） | 18 | TOP1 | reports/2026-11-23.md。Flutter デモ・Copilot 比較は避ける |
-| 2026-11-23 | Claude Code の許可確認との付き合い方（auto mode + 無人 deny 設定） | 15 | TOP2・条件付き | 社内 Team 組織で auto mode が有効か要確認 |
-| 2026-11-23 | CocoaPods trunk read-only（12/2）と Flutter の SwiftPM 対応 | 13 | TOP3・条件付き | 12/2 の日付を blog.cocoapods.org で一次確認すること |
-| 2026-11-23 | Gemini CLI → Antigravity CLI 移行と 11 月更新 | 11 | 保留 | 移行告知本文が未確認。社内の Gemini CLI 利用実態も要確認 |
+| 2026-11-23 | `/code-review` 重要度ラベル + `--fix` でセルフレビュー定着（+ `/loop` で CI 見張り） | 18 | TOP1（11/24 も TOP1） | reports/2026-11-24.md。Flutter デモ・Copilot 比較は避ける。デモは 2.1.331 以上 |
+| 2026-11-23 | Claude Code の許可確認との付き合い方（auto mode + 無人 deny 設定） | 15 | 次点（11/24 に TOP2 から降格） | 社内 Team 組織で auto mode が有効なら VS Code 拡張候補と入れ替え可。2.1.330 の rm 承認必須化の拡大を補足 |
+| 2026-11-23 | CocoaPods trunk read-only（12/2）と Flutter の SwiftPM 対応 | 14 | TOP3・条件付き | 11/24 に 12/2 を一次確認（13→14）。社内アプリの Flutter バージョン確認、デモは「CocoaPods フォールバックの洗い出し」 |
+| 2026-11-24 | VS Code 拡張「Fix with Claude Code」「Resolve Merge Conflicts」 | 16 | TOP2・条件付き | 2.1.330/2.1.331。Copilot 比較表は作らない、Flutter 以外のリポジトリでデモ |
+| 2026-11-24 | `gh event listen` で PR レビュー・CI 完了をポーリングなしで待つ | 14 | 保留 | gh v2.105.0、preview・ウェイトリスト制。通過していれば 16 点相当 |
 
 ## 採用済み（実際に発表した / 予定）
 | 日付 | タイトル | 発表者 |
@@ -19,6 +20,8 @@
 |---|---|---|
 | 2026-11-23 | Vite+ 安定版 / Vinext 1.0 | 対象期間外（9/28）、本番非推奨、帰属誤りの可能性、Web 限定 |
 | 2026-11-23 | Claude Code `/usage` 改善と idle compaction | 中身が薄くデモ不安定、fast mode 終了（11/30）で陳腐化 |
+| 2026-11-24 | Gemini CLI → Antigravity CLI 移行と 11 月更新 | 移行告知は 2026-05-19 で古い。本文未確認、Gemini CLI は開発継続中で軸が定まらない（11/23 保留から却下） |
+| 2026-11-24 | Gemini の Gem → skills 移行と skills 共有 | 一次情報本文未取得、当初英語のみ、移行時期の情報が矛盾。日本語対応・日程確認後に再評価可 |
 
 ## フィードバック（人間が記入）
 <!-- 例: 「AI ツール比較系はもう飽和気味」「デモありのネタが好評だった」など -->
