@@ -1,124 +1,127 @@
-# practitioner（実務適用）調査メモ
+# practitioner 調査メモ 2026-11-26（JST）
 
-- 調査日: 2026-11-25（JST）
-- 対象期間: 前回レポート（reports/2026-11-24.md）以降。前回から 1 日しか経っていないため、前回までの調査で拾えていなかった 11 月中旬以降の Claude Code 以外のネタ（Flutter / GitHub Actions / Backlog）を重点的に探した
-- 観点: 「明日から業務で試せるか」。新しさより持ち帰りやすさを優先
-- 重複チェック: CLAUDE.md の過去テーマ 3 件と、backlog.md の候補（/code-review + /loop、auto mode・無人 deny、CocoaPods trunk read-only、VS Code 拡張 Fix/Resolve、gh event listen）と却下（Vite+/Vinext、/usage・idle compaction、Gemini CLI→Antigravity CLI、Gem→skills）を照合した
-- 結論: **新規候補は 3 件**（すべて Claude Code 以外）。5 件には満たないので、無理に埋めていない。Claude Code は 2.1.331（11/23）より新しい版が changelog になく、Claude Code の新規ネタはなし
-
-## 注意（ネットワーク制約）
-
-- 一次情報を本文まで確認できたのは、今回も code.claude.com / github.com / raw.githubusercontent.com だけ。
-- codezine.jp が ENOTFOUND だったので、ツールの指示に従い、それ以外の新しいホストは取得を試していない（末尾の一覧を参照）。
+- 対象期間: reports/2026-11-25.md（11/25 作成）以降
+- 観点: 明日から業務で試せるか（新しさより持ち帰れるか）
+- **結論: 新ネタは少ない。新規は 3 件だけ**（Claude Code 2.1.332 から 2 件、gh v2.106.0 から 1 件）。Flutter と GitHub Actions ランナーには、11/25 以降の新しい一次情報が見つからなかった。無理に 5 件までは埋めていない。
+- 重複確認: backlog.md の候補・却下と、CLAUDE.md の過去テーマを確認済み。`/code-review`、VS Code 拡張、auto mode、`gh event listen`、Flutter 3.50、CocoaPods、runner-images、Backlog MCP とは重ならない。
 
 ---
 
-## 候補 1: Flutter 3.50.1 hotfix — 3.50.0 で止まっているなら今すぐ上げるべき理由（`.env` が APK から消える、split APK の versionCode が重複する）
+## 新規候補
 
-- **タイトル案**: 「3.50.0 のまま出荷していませんか？」Flutter 3.50.1 hotfix の実害チェック
-- **日付**: 3.50.0 = 2026-11-09、3.50.1 = 2026-11-19（GitHub の tags ページで確認）
-- **概要**: Flutter 3.50.1 は 11 件の不具合を直す stable の hotfix。業務アプリへの影響が大きいのは次の 4 件。
-  - 3.50.0 の Android ビルドで、名前がドットで始まるアセット（`.env` など）やアンダースコアで始まるフォルダが APK / AAB に入らず、実行時に失敗する（flutter/196444）
-  - `--split-per-abi` で、`versionCode` を `AndroidManifest.xml` にだけ書いていると、すべての split APK が同じ versionCode になる（flutter/196559）
-  - プラグインがあり、独自の `buildType` を持つ Android ビルドが Gradle の設定段階で失敗する（flutter/196412）
-  - Gradle の configuration cache が保存されず、毎回再利用されない（flutter/195006）
-  - Web: `--wasm` + cross-origin isolation で動的テキストの描画が固まる、大きな Web アプリで `flutter run -d chrome` がタイムアウトする、など
-- **参加者が持ち帰れるもの**: 「hotfix の CHANGELOG を読んで、自分のアプリに当たるか 5 分で判定する」手順と、APK の中身・versionCode を確認するコマンド
+### P1. skill の `` !`cmd` `` を hook で検査する: `PreSkillShellCommand` で「配られた skill」を安全に使う
+
+- **リリース日**: Claude Code 2.1.332（2026-11-25）。changelog と hooks docs で確認済み。
+- **概要**:
+  - skill に書いた `` !`gh pr diff` `` のような埋め込みコマンドは、skill を読み込むときに実行される。これまでは `PreToolUse` hook が発火しないので、チェックできなかった（skills docs に明記）。
+  - 2.1.332 で `PreSkillShellCommand` hook が追加された。exit 2 か `permissionDecision: "deny"` を返すと、そのコマンドだけを止められる。skill 自体は読み込まれ、出力の位置には `[not run: blocked by hook: <reason>]` が入る。
+  - 入力には `command_name`、`command_source`（`projectSettings` / `plugin` など）、`invoked_by` が入るので、「プラグイン由来の skill の rm を止める」といった条件で書ける。
+- **参加者が持ち帰れるもの**: チームで共有する `.claude/settings.json` に入れる「skill の破壊的コマンドを止める hook」の雛形 1 つ
 - **15 分構成案**:
-  1. （3 分）Flutter の hotfix の方針（最新の stable だけに出る）と、3.50.1 の 11 件のうち業務アプリに効く 4 件
-  2. （8 分）デモ: `.env` をアセットに含むサンプルアプリを 3.50.0 と 3.50.1 で `flutter build apk` → `unzip -l` でアセットの有無を比べる。続けて `--split-per-abi` の versionCode を `aapt2 dump badging`（または `apkanalyzer`）で比べる
-  3. （4 分）社内アプリの確認チェックリスト（`.env` / `_` 始まりのアセット、split APK の運用、独自 buildType）と、CI の Flutter バージョン固定の見直し
-- **30 分以内で準備できるデモ案**: `flutter create` したアプリに `.env` をアセットとして追加し、fvm などで 3.50.0 と 3.50.1 を切り替えて 2 回ビルドする。Android SDK があれば Mac 不要
-- **想定対象者**: モバイル（Flutter）。Web 版 Flutter を持っている人にも一部効く
-- **根拠 URL（取得・確認済み）**:
-  - https://raw.githubusercontent.com/flutter/flutter/stable/CHANGELOG.md （3.50.1 の項。11 件の issue 番号と症状を確認）
-  - https://github.com/flutter/flutter/tags （3.50.1 = 2026-11-19、3.50.0 = 2026-11-09、3.51.0-0.2.pre = 2026-11-18）
-- **重複チェック**: 過去テーマ「Claude を使った Flutter モバイル開発の実践」とは別（AI の話ではない）。backlog の CocoaPods 候補とも別（iOS ではなく Android / Web の話）
-- **推測部分**:
-  - 社内アプリが 3.50.0 に上がっているかは未確認。上がっていなければ「上げる前に 3.50.1 を選ぶ」という話になり、緊急性は下がる
-  - `.env` をアセットで同梱する運用（flutter_dotenv など）が社内にあるかは未確認。あれば実務への効きは大きい
-  - 3.50.0 自体の目玉（docs.flutter.dev のリリースノート）は ENOTFOUND で未取得。3.50.0 の新機能まで話すなら別途確認が必要
+  1. （4 分）skill の `!` 埋め込みは何か。実行が読み込み時なので `PreToolUse` では止められない、という盲点を説明する
+  2. （7 分）デモ: docs のテスト手順どおりに、1 行の `.claude/skills/hook-test/SKILL.md`（`` !`echo 'rm -rf'` ``）と `block-rm.sh` を用意し、`/hook-test` で `Not run in /hook-test: ... (blocked by hook: ...)` が出ることを見せる
+  3. （4 分）チームで使うときの設定
+     - matcher は `Bash|PowerShell`、`onFailure: "block"` を付ける。async の hook は使わない
+     - auto mode では、読み込み後に Claude がツールとして再実行すると `PreToolUse` 側で発火するので、同じスクリプトを両方の hook に登録する
+     - 2.1.331 以下に設定だけ入れると起動時に警告ダイアログが出る。`requiredMinimumVersion` で最低バージョンを揃える
+- **注意**:
+  - 許可（allow）には使えず、ブロック専用。
+  - 既出の「許可確認との付き合い方（auto mode + 無人実行の deny 設定）」と隣り合うテーマ。リードの判断で、その候補の 1 パートに統合してもよい（推測）。
+- **根拠 URL（すべて取得・確認済み）**:
+  - https://code.claude.com/docs/en/changelog （2.1.332）
+  - https://code.claude.com/docs/en/hooks.md （PreSkillShellCommand 節。入力フィールド、決定の制御、テスト例）
+  - https://code.claude.com/docs/en/skills.md （`!` 埋め込み、`disableSkillShellExecution`）
+- **自己採点（参考）**: 新しさ 5 / 実務への効き 3 / 15 分で話せるか 4 / デモ映え 5 = 17
+  - 実務への効きは、skill を使っている人に限られるので 3 とした。
 
----
+### P2. Skills over MCP（public beta）: MCP サーバー経由で skill を配る仕組みと、Team 組織での有効化・制限
 
-## 候補 2: GitHub Actions のランナーが 11 月に一斉に変わった — `-latest` ラベル依存の棚卸し（ubuntu-latest → 26.04、Xcode 27 GA、Windows の ReFS 化）
-
-- **タイトル案**: 「CI が急に落ちた」の正体 — GitHub Actions runner-images の 11 月の変更点と `-latest` の固定戦略
-- **日付**: ubuntu-latest → 26.04 は 2026-10-19 から段階移行、11-19 完了予定（#14748）／ Xcode 27 GA 告知 2026-11-23（#15397）／ Windows の D: が ReFS に変わるのは 2026-11-30（#15315）／ Go 1.24 の tool cache 削除 2026-11-18（#15253）
-- **概要**: actions/runner-images の告知 issue によると、11 月にランナーの中身が大きく変わった。
-  - `ubuntu-latest` が Ubuntu 26.04 になった。カーネル 6.17 → 7.0、systemd 255 → 259、既定の Java が 17 → 25 に上がる。issue のコメントでは Docker 29 の containerd image store、bubblewrap の AppArmor 拒否、pip の TLS 失敗、wkhtmltopdf の apt パッケージがないこと、などの報告がある（メンテナーは未確認）
-  - Xcode 27 の専用イメージ（`runs-on: xcode-27`）が GA になった。macOS 26 / Xcode 27 では既定の OpenSSL が 3 から 4 に変わる予定（#14856）
-  - 11/30 から Windows イメージの D: ドライブが NTFS から ReFS に変わる
-- **参加者が持ち帰れるもの**: 自分のリポジトリの `runs-on: *-latest` を洗い出し、「固定する / 追従する」を決めるチェックリストと、ジョブログの「Runner Image」欄で今どのイメージで走ったか確認する方法
+- **リリース日**: changelog では 2.1.332（2026-11-25）で "Added skills from MCP servers (beta)"。一方、mcp docs / skills docs には「v2.1.331 以上が必要」とあり、記載が食い違う。どちらも取得・確認済み。
+- **概要**:
+  - MCP サーバーが tool と一緒に skill も提供できるようになった。skill は `/` メニューに `<server>:<skill>` の名前で出る（claude.ai コネクタは `claude_ai_<名前>:`、プラグインは `plugin_<plugin>_<server>:` という接頭辞が付く）。
+  - **Team / Enterprise で `/login` している場合は、組織が有効にするまで OFF**。有効にするには、Owner が Organization settings > Connectors で「Skills over MCP」を ON にし、さらに組織の Skills 設定も ON にする必要がある。
+  - permission ルールで制御できる。例: `Skill(mcp__docs__*)` を deny / ask / allow、`Skill(docs:pdf)` を deny。
+  - MCP skill では、`!` 埋め込みの実行、`@` 参照、`allowed-tools` などの frontmatter が無効になる。
+- **参加者が持ち帰れるもの**: 「社内 Team 組織で MCP skill を有効にするか、するならどのルールで絞るか」の判断材料。管理者向けチェックリスト 1 枚
 - **15 分構成案**:
-  1. （4 分）11 月に何が変わったか（Ubuntu 26.04、Xcode 27 GA、Windows ReFS、Go 1.24 削除）。「-latest は予告つきで動く」ことを先に言う
-  2. （7 分）デモ: `gh search code` または `grep -r "runs-on" .github/workflows` で `-latest` を洗い出す → 同じジョブを `matrix: os: [ubuntu-24.04, ubuntu-26.04]` で走らせて Java のバージョン差などを見せる → ジョブログの Set up job にある Runner Image を確認
-  3. （4 分）固定するか追従するかの判断基準と、runner-images の Announcement ラベルの issue を Watch しておく運用
-- **30 分以内で準備できるデモ案**: テスト用リポジトリに `java -version` / `lsb_release -a` / `docker info` を表示するだけのワークフローを置き、24.04 と 26.04 の matrix で実行する。数分で終わる
-- **想定対象者**: GitHub Actions を使う全員（Web / インフラ）。Flutter の iOS ビルドを Actions で回しているモバイルの人には Xcode 27 の部分が効く
-- **根拠 URL（取得・確認済み）**:
-  - https://github.com/actions/runner-images/issues/14748 （ubuntu-latest → 26.04）
-  - https://github.com/actions/runner-images/issues/15397 （Xcode 27 GA、2026-11-23）
-  - https://github.com/actions/runner-images/releases （11/22〜24 のイメージ。xcode-27-arm64 に GitHub CLI 2.105.0 が入っている、など）
-  - https://github.com/actions/runner-images/issues?q=is%3Aissue+label%3AAnnouncement+is%3Aopen （告知 issue 一覧。#15315 ReFS、#15253 Go 1.24、#14856 OpenSSL 4 など）
-- **重複チェック**: backlog の CocoaPods 候補（iOS の依存管理）と、Xcode 27 の部分が少し重なる。重ねる場合は Xcode 27 を CocoaPods 候補の補足に回し、こちらは Ubuntu / Windows 中心にする
-- **推測部分**:
-  - 社内でどのくらい GitHub Actions を使っているか（Backlog Git や他の CI がメインの可能性）は未確認
-  - issue のコメントの不具合報告（Docker、bwrap、pip/SSL）はユーザー報告で、メンテナーは確認していない。発表では「報告がある」にとどめる
-  - #15397 から GitHub Changelog（2026-10-15）の記事にリンクがあるが、github.blog は ENOTFOUND のため未取得
-  - 移行は 11/19 完了予定とされるが、実際に全ジョブで切り替わったかは未確認（コメントには 10/19 より前に 26.04 になっていたという報告もある）
+  1. （4 分）ローカル skill / プラグイン skill / MCP skill の違い。MCP skill で無効になる機能（`!`、`@`、`allowed-tools`）
+  2. （6 分）Team 組織での有効化の手順と、制限の選択肢
+     - コネクタの「Restrict to Ask / Blocked」
+     - `disableDirectMcpSkills`
+     - deny ルール
+     - Anthropic の security scan の対象は一部のコネクタだけ
+  3. （5 分）使えない環境を確認する
+     - `claude -p`、GitHub Actions、Agent SDK、クラウドセッションでは使えない
+     - トラブル時は `claude --debug=mcp` と `/status` の Features 行を見る
+- **注意（デモ不安）**:
+  - 実際に skill を提供している MCP サーバーを、今回は確認できていない。仕様ページ（modelcontextprotocol.io）は ENOTFOUND だった。社内でよく使う Backlog MCP / GitHub MCP が skill を提供しているかも未確認。
+  - このためデモは、設定画面と `/permissions` を見せる程度になる見込み。デモ映えは低めに見る。
+  - 社内 Team 組織で Owner が有効化できるかを、人間に確認する必要がある。
+- **根拠 URL**:
+  - https://code.claude.com/docs/en/changelog （2.1.332、取得済み）
+  - https://code.claude.com/docs/en/mcp.md （"Use skills from MCP servers" 節、取得済み）
+  - https://code.claude.com/docs/en/skills.md （MCP skill の制限、取得済み）
+  - https://modelcontextprotocol.io/extensions/skills/overview （**取得できず**、ENOTFOUND）
+- **自己採点（参考）**: 新しさ 5 / 実務への効き 3 / 15 分で話せるか 4 / デモ映え 2 = 14
 
----
+### P3. gh v2.106.0 にすぐ上げる理由: 脆弱性 7 件の修正と、`gh auth logout` がトークンを失効させるようになった件
 
-## 候補 3: Backlog MCP Server を Claude に繋いで「課題を読む・起票する」を会話でやる（v0.23.x、権限を絞る設定つき）
-
-- **タイトル案**: Backlog の課題、Claude に読ませていますか？ Backlog MCP Server の最小構成と toolset の絞り方
-- **日付**: v0.23.4 = 2026-11-18（依存更新）、v0.23.3 = 2026-10-27（セキュリティ修正 CVE-2026-111768）、v0.22.0 / v0.21.0 = 2026-10-13（破壊的変更: `get_document` がプレーンテキストのみに、ツールの応答を圧縮）
-- **概要**: ヌーラボが公開している Backlog MCP Server を使うと、Claude（Claude Code / Claude Desktop）から Backlog のプロジェクト・課題・Wiki・Git・プルリクエスト・通知・ドキュメントを扱える。`npx backlog-mcp-server` か Docker（`ghcr.io/nulab/backlog-mcp-server`）で起動し、`BACKLOG_DOMAIN` と `BACKLOG_API_KEY` を渡すだけで動く。`--enable-toolsets`（例: `project,issue`）で使うツールを絞れる。Streamable HTTP や OAuth 2.0 にも対応している。日本語ガイド（README.ja.md）がある。
-- **参加者が持ち帰れるもの**: Claude Code に Backlog MCP を追加する設定 1 つと、「課題の要約 → 子課題の起票」を頼むプロンプト例
+- **リリース日**: gh v2.106.0（2026-11-25、GitHub Releases で Latest 表示）。取得・確認済み。
+- **概要**:
+  - 脆弱性 7 件を修正した。リリースノートには "update `gh` to version `v2.106.0` as soon as possible" とある。内容は次のとおり。
+    - 制御文字の無害化漏れ（C1 制御文字、verbose ログ、`gh codespace ports`、`gh agent-task view --log`、`gh skill install/search`）
+    - `gh skill update` が、同じ名前を使う別リポジトリの skill を入れてしまう問題（GHSA-q2rq-2r2v-2jm5）
+    - `gh codespace jupyter` が localhost の cookie を漏らす問題
+  - `gh auth logout` の挙動が変わった。ローカルの認証情報を消す前に OAuth トークンを revoke し、Git の credential helper に保存された HTTPS 認証情報も削除する。従来どおりにしたい場合は `--no-revoke` を付ける。
+- **参加者が持ち帰れるもの**: 「手元とスクリプトの gh を v2.106.0 に上げる」ことと「`gh auth logout` を使っているスクリプトの洗い出し」の 2 つ
 - **15 分構成案**:
-  1. （3 分）何ができるか（toolset 一覧）と、API キーの扱い。古い版を使っている人は v0.23.3 以上に上げる（CVE 修正）
-  2. （8 分）デモ: Claude Code に `project,issue` だけを有効にして追加 → 「このマイルストーンの未完了課題を担当者別にまとめて」→ 「この課題を 3 つの子課題に分けて起票して」（起票前に許可確認が出ることを見せる）
-  3. （4 分）運用の注意: toolset を絞る、HTTP モードを外に公開しない（README の警告）、v0.21.0 / v0.22.0 の破壊的変更
-- **30 分以内で準備できるデモ案**: テスト用の Backlog プロジェクトを 1 つ作り、ダミー課題を 5 件ほど入れる。個人 API キーを発行し、`npx backlog-mcp-server` を Claude Code に MCP サーバーとして登録する
-- **想定対象者**: Backlog を使う全員（エンジニア以外にも効く）。Claude Team の利用者
+  1. （4 分）7 件の GHSA を「端末の制御文字」「skill の取り違え」「codespace」の 3 群にまとめる。`gh skill` を使っている人への影響を説明する
+  2. （6 分）デモ: `gh --version` → アップデート → `gh auth status`。テスト用アカウントで `gh auth logout` を実行し、トークンが失効することと、`git credential` から消えることを確認する。`--no-revoke` との違いも見せる
+  3. （5 分）運用チェック
+     - 共用マシンや CI のスクリプトで `gh auth logout` を使っていないか
+     - 複数の端末で同じトークンを使い回していないか
+     - Homebrew / apt / winget それぞれの更新方法
+- **注意**:
+  - 各 GHSA の深刻度は、リリースページに書かれていない（未確認）。
+  - revoke の対象は "GitHub CLI OAuth token" と書かれている。`GH_TOKEN` 環境変数で渡した PAT も失効するかは書かれていない（推測では対象外だが、未確認）。デモの前に試すこと。
+  - 中身は「アップデートしよう」なので、単独の 15 分枠としてはやや薄い。LT や、既出の `gh event listen` 枠の冒頭 3 分に使う案もある。
 - **根拠 URL（取得・確認済み）**:
-  - https://github.com/nulab/backlog-mcp-server （README: 起動方法、環境変数、toolset、HTTP / OAuth）
-  - https://github.com/nulab/backlog-mcp-server/releases （v0.21.0〜v0.23.4 の日付と内容）
-- **重複チェック**: backlog・過去テーマに Backlog × AI の候補はない。過去テーマ「Copilot から Claude への乗り換え比較」とも別
-- **推測部分・条件**:
-  - **新しさは低い**。このサーバー自体は 2025 年から公開されていたと記憶している（推測、今回は未確認）。直近の変更は破壊的変更・セキュリティ修正・依存更新で、目玉の新機能ではない。採点では新しさ 2〜3 点が妥当と考える
-  - README は Claude Desktop などの汎用の `mcpServers` JSON 例が中心で、`claude mcp add` の具体的なコマンドは記載されていない（Claude Code 側のドキュメントで補う）
-  - README に読み取り専用モードの記載はない。書き込みを避けたい場合は toolset の絞り込みと Claude 側の許可設定で制御する
-  - 社内で Backlog の API キー発行や MCP の利用が許可されているかは未確認。「無保証・公式サポートなし」と README に書かれている点も伝える
-  - Backlog 本体の AI アシスタント（2026-03 搭載とされる、検索要約のみ）との使い分けは未調査
+  - https://github.com/cli/cli/releases/tag/v2.106.0
+  - https://github.com/cli/cli/releases
+- **自己採点（参考）**: 新しさ 5 / 実務への効き 4 / 15 分で話せるか 4 / デモ映え 3 = 16
+  - 実務への効きは、GitHub を全員が使う前提で 4 とした。
 
 ---
 
-## 既出候補の更新情報
+## 既出の更新（短く）
 
-| 既出候補 | 新情報 | 根拠 | 評価への影響（推測） |
-|---|---|---|---|
-| `/code-review` + `/loop`（TOP1） | changelog に 2.1.331（11/23）より新しい版はない | https://code.claude.com/docs/en/changelog （取得済み） | 変化なし |
-| VS Code 拡張 Fix / Resolve（TOP2） | 2.1.331 にはほかに、ノートブックのセルを出力・エラーごと渡す「Add Cell to Chat」と、大きな選択範囲を送る前の警告もある。デモの補足に使える | 同上 | 変化なし（補足 1 行） |
-| auto mode・無人 deny（次点） | 新情報なし | 同上 | — |
-| CocoaPods trunk read-only（TOP3） | 公式ブログのリポジトリの最新コミットは 11/2 の「Update dates」で、それ以降の更新はない（12/2 の予定は変わっていない）。Flutter の stable CHANGELOG では、3.47.2 に「Xcode 27 で SwiftPM を使って Flutter を組み込んだ既存のネイティブ iOS アプリのビルドが失敗することがある」修正がある。Xcode 27 が Actions で GA になった（候補 2）ので、iOS の CI の話と繋げられる。CHANGELOG の 3.44〜3.50 に CocoaPods への言及はない | https://github.com/CocoaPods/blog.cocoapods.org/commits/master （取得済み）、https://raw.githubusercontent.com/flutter/flutter/stable/CHANGELOG.md （取得済み） | 変化なし。「SwiftPM の既定化は 3.44 から」は今回も一次情報で確認できていない |
-| `gh event listen`（保留） | GitHub CLI の最新は今回も v2.105.0（11/18）で、新しい版はない。リリースページは今回も「GitHub Event Streams is in preview」と、ウェイトリスト（gh.io/event-streams-signup）へのリンクだけで、一般公開の情報はない。補足として、runner-images の xcode-27-arm64 イメージには GitHub CLI 2.105.0 が入っている | https://github.com/cli/cli/releases （取得済み）、https://github.com/actions/runner-images/releases （取得済み） | 保留のまま。ウェイトリストの通過状況は人間に確認が必要 |
-| Backlog 横断ガントチャート（未確認の手がかり） | 今回もリリースを確認できなかった。検索結果に 11 月のリリース情報はなく、nulab.com は過去 ENOTFOUND のため試していない | 検索結果の要約のみ | 候補化しない |
-| Gemini CLI（却下済み） | 参考: v0.71.0 / v0.71.1（11/24）が出ている。中身は PowerShell の非同期パースと A2A サーバーの認証修正で、却下判断を変えるほどではない | https://github.com/google-gemini/gemini-cli/releases （取得済み） | 却下のまま |
+- **`/code-review`（TOP1）**
+  - 2.1.332 に `/code-review` 自体の変更はない。
+  - `/loop` については、VS Code のサイドバーで `/rewind` すると自分のペースで回している `/loop` が止まる、という警告が追加された。デモで `/rewind` を使うなら注意。
+- **許可確認との付き合い方（次点）**
+  - 2.1.332 で `/permissions` が「次回起動時に無視されるルール（ツール名のない `rm -rf` など）」を拒否し、理由を表示するようになった。deny 設定のデモで使える。
+  - 2.1.332 では、Desktop の Code タブと VS Code の plan mode も変わった。auto mode の安全チェックが判定できないコマンドを、拒否せずに承認を求めるようになった。
+  - Bedrock / Foundry などで Sonnet 5 / 5.5 を使うと auto mode で始まる変更は、社内は Team プラン（Anthropic API の想定）なので、おそらく無関係（推測）。
+  - P1（PreSkillShellCommand）はこの候補に統合してもよい。
+- **VS Code 拡張（TOP3）**
+  - 2.1.332 で、提案された diff を閉じて未適用になったときの通知が増えた。セッションの一部が保存できなかったときの警告も追加された。
+  - 拡張のパネルの起動と、長いセッションの表示が速くなった。デモの体感が良くなる程度で、論点は変わらない。
+- **`gh event listen`（保留）**
+  - v2.106.0 に event 関連の変更はない。preview のまま。
+- **Flutter 3.50 / CocoaPods**
+  - stable の CHANGELOG の最新は 3.50.1 のまま。whats-new の最新も 11/11（3.50）のまま。
+- **runner-images**
+  - 11/21 以降の Announcement は #15397（Xcode 27 GA、11/23）だけで、これは既出。
+
+---
 
 ## 取得できなかった URL
 
-| URL | エラー |
-|---|---|
-| https://codezine.jp/news/detail/28470 | getaddrinfo ENOTFOUND codezine.jp（ネットワーク許可外と推測） |
+- https://github.blog/changelog/month/11-2026/ （ENOTFOUND。github.blog はネットワーク許可リストの外と推測）
+- https://modelcontextprotocol.io/extensions/skills/overview （ENOTFOUND）
 
-- codezine.jp が ENOTFOUND になった後は、ツールの指示に従って新しいホストを試していない。前回までに ENOTFOUND だった docs.flutter.dev / *.googleblog.com / github.blog / nulab.com も今回は試していない。
-- https://github.com/flutter/flutter/releases は取得できたが、2024-01 の 3.19 beta までしか載っていない古いページだった（Flutter は GitHub Releases を更新していないと推測）。代わりに tags ページと stable の CHANGELOG を使った。
-- 未取得の参考 URL（検索結果に出たもの）: https://docs.flutter.dev/release/release-notes/release-notes-3.50.0 、 https://atmarkit.itmedia.co.jp/ait/articles/2607/24/news048.html
+## 補足
 
-## 未確認の手がかり（候補化していない）
-
-- Flutter 3.51 beta（3.51.0-0.2.pre、11/18）: 次の stable の先取りとして使える可能性があるが、中身は未確認
-- runner-images #15373（11/20）: Visual Studio 2027 が使えるようになり、12 月から Visual Studio 2026 のラベルが非推奨になり始める。社内に Windows のビルドがあれば関係する
-- Backlog の料金プラン: 2027-01-01 から新プラン（エコノミー / ビジネス / プロフェッショナル）。現行プランの新規契約は 2026-12-31 まで（@IT 2026-07-24、二次情報・未取得）
+- WebSearch で "GitHub changelog November 2026" を検索したが、11 月分は出てこなかった（10 月上旬まで）。github.blog は直接取得できないので、GitHub 本体の 11 月の変更は確認できていない。
+- Claude Code の changelog は 2.1.332（11/25）が最新（11/26 時点の取得結果）。
+- PostToolUse hook のエラー（`/root/.claude/hooks/wf-collector.py` が見つからない、`base64: invalid input`）は今回も出た。調査には影響なし。

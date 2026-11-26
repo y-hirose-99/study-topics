@@ -1,118 +1,106 @@
-# trend-scout 調査メモ（2026-11-25 JST 実行）
+# trend-scout 調査メモ（2026-11-26 JST 実行）
 
-- 対象期間: 前回レポート（reports/2026-11-24.md）以降。実質 2026-11-24〜25 の 1 日分。ただし、これまでネットワーク制約で一次情報を読めず、backlog に一度も載っていない話題は「新規（backlog 未登録）」として扱った（リリース日は各候補に明記）
-- 重複チェックの対象: CLAUDE.md の過去テーマ 3 件、backlog.md の候補 5 件・却下 4 件
-- 今回の方針: Claude Code 以外（Flutter / Dart、Firebase、GitHub、Workspace、Backlog、インフラ）を優先。docs.flutter.dev が取れないため、flutter/website リポジトリの raw ソース（`sites/docs/src/content/...`）を読んだ。これで Flutter の一次情報が初めて読めた
+- 対象期間: 前回レポート（reports/2026-11-25.md）以降。実質 2026-11-25〜26 の 1 日分
+- 重複チェックの対象: CLAUDE.md の過去テーマ 3 件、backlog.md の候補 8 件・却下 7 件
+- 読めたホスト: code.claude.com / github.com / raw.githubusercontent.com。nulab.com・modelcontextprotocol.io は ENOTFOUND（末尾参照）
 
 ## 結論
 
-- 2026-11-24 以降に出た新しいリリースで勉強会 1 枠になるものは**なし**。
-- ただし、Flutter の一次情報が初めて読めたので、**backlog 未登録の新規候補を 3 件**出す（新規 1 が本命。新規 2・3 は新しさが弱い）。
-- **既出候補の更新が 2 件**ある（CocoaPods trunk、`gh event listen`）。
+- **新規候補は 2 件だけ**（5 件には届かない。無理に埋めていない）。
+  - 新規 1: Claude Code の「MCP サーバーから skills を配る」（public beta、changelog 上は 2.1.332 / 11/25）。本命
+  - 新規 2: claude-code-action v1.0.288 で fork PR が既定スキップに（11/23、破壊的変更）。社内での影響は限定的な可能性が高い
+- **既出の更新が 3 件**: GitHub Actions ランナーイメージ（#15373 VS 2027）、`gh event listen` 枠（gh v2.106.0 のセキュリティ更新）、Backlog MCP Server（v0.23.4）。
+- **前回の「未確認の手がかり」4 件**: VS 2027 は一次確認できた。Flutter 3.51 beta は中身がほぼ hotfix の cherry-pick だった。Backlog の新プランとプロジェクト横断ガントは、一次情報（nulab.com）が ENOTFOUND で確認できなかった（下の「未確認の手がかりの確認結果」）。
 
 ---
 
 ## 新規候補
 
-### 新規 1: Flutter 3.50 で非推奨になった Material / Cupertino を `dart fix` 一発で `material_ui` / `cupertino_ui` に移行する
+### 新規 1: MCP サーバーから skills を配る: Claude Code の「Skills over MCP」（public beta）と、チームでの許可・制限のしかた
 
-- **リリース日**: Flutter 3.50 は 2026-11-11（docs の What's new に「11 November 2026: Release 3.50」とある）。hotfix 3.50.1 も出ているが、CHANGELOG に日付がないので、リリース日は不明
-- **概要**: Flutter 3.50 で、SDK に同梱されている Material / Cupertino ライブラリが正式に非推奨になった（"The in-framework design libraries are formally deprecated in Flutter 3.50."）。今後は pub.dev の独立パッケージ `material_ui` / `cupertino_ui` を使う。経緯は、3.44 で SDK 内のコードを凍結、3.47 で独立パッケージ 1.0 を公開（opt-in）、3.50 で非推奨。`dart fix --apply --code=migrate_design_widgets` で import を自動で書き換えられる。依存パッケージが未移行のときの一時的な橋渡しとして `MaterialUiCompatibilityBridge` がある。
-- **落とし穴（一次情報に記載あり）**:
-  - 3.50 の `flutter gen-l10n` は、まだ非推奨の delegates を生成する。回避策は `l10n.yaml` に `header: '// ignore_for_file: deprecated_member_use'` を書くこと。
-  - `flutter_localizations` の import が残ると `ambiguous_import` エラーになる。
-  - `CupertinoApp` の中で Material ウィジェットを使っている場合、Material の delegates を入れないと "No MaterialLocalizations found" になる。
-  - パッケージ作者が移行すると、利用者にとって破壊的変更になる（"Treat this migration as a major version bump"）。
-- **なぜ今話す価値があるか**: 社内のモバイルは Flutter が中心で、全アプリが通る移行。非推奨の警告が出始めたばかりの今がちょうどよい。
-- **15 分構成案**: (1) 3.44→3.47→3.50 の経緯と、まだ削除時期は決まっていないこと（3 分） (2) デモ: サンプルアプリで `dart fix` → `flutter pub add material_ui` → ビルド（7 分） (3) gen-l10n・localizations・依存パッケージの落とし穴（5 分）
-- **想定デモ**: `flutter create` で作ったアプリ（l10n 入り）を 3.50 にして、`dart fix --apply --code=migrate_design_widgets` を実行し、差分とビルドが通ることを見せる。gen-l10n の警告と、その回避も見せる。準備は 30 分以内でできる見込み（推測。発表者の環境に 3.50 が必要）
+- **リリース日**: changelog では Claude Code **2.1.332（2026-11-25）** の Added に "Added skills from MCP servers (beta). They show as `server:skill` in the `/` menu" とある。一方、docs（mcp.md / skills.md）は「v2.1.331 以降が必要」と書いている。changelog と docs で版が 1 つずれている。デモは 2.1.332 以上で行うのが安全（推測）
+- **概要**: MCP サーバーがツールと一緒に skills を提供できるようになった（MCP の Skills extension を実装したサーバーが対象）。`/` メニューや `/skills` に `<server>:<skill>` の名前で出て、`/docs:pdf report.pdf` のようにコマンドとして呼べる。権限ルールは `Skill(mcp__docs__*)` / `Skill(docs:pdf)` で deny / ask / allow を書ける。auto mode では classifier が読み込みの可否を決め、Manual では「Allow this version」で版ごとに承認する（サーバー側で skill が変わると承認し直し）。
+- **社内（Claude Team プラン）に直結する点**: docs に "With `/login` on a Team or Enterprise plan, they're off until your organization turns them on." とある。connector の skills は Owner が Organization settings > Connectors で **Skills over MCP** をオンにする。それ以外のサーバーは managed settings で `disableDirectMcpSkills: false` にする。逆に止めたいときは `disableDirectMcpSkills: true`、connector 単位で「Restrict to Ask / Blocked」。
+- **関連（同じ 2.1.332）**: skill を読み込むときに埋め込みのシェルコマンドが走る前に止められる `PreSkillShellCommand` フックが追加された（exit 2 でブロックし、skill はその出力なしで読み込まれる。docs の hooks.md の lifecycle 表で確認）。「配られた skill が勝手にコマンドを実行しないか」をチームで守る話としてまとめられる。
+- **なぜ今話す価値があるか**: 11/25 に出たばかりの beta で、Team プランでは既定オフ。「社内で有効にするか、どう制限するか」を決める前に全員で知っておく価値がある。
+- **15 分構成案（提案）**: (1) skills と MCP の役割分担、`server:skill` の呼び方（4 分） (2) デモ: skills を返す MCP サーバーを繋いで `/` から呼ぶ、`/permissions` で `Skill(mcp__<server>__*)` を ask / deny にしたときの違いを見せる（7 分） (3) Team での有効化手順、セキュリティスキャン対象の範囲（第三者 Directory connector など一部だけ）、`PreSkillShellCommand` での防御（4 分）
+- **デモの課題（重要）**:
+  - skills を返すには、サーバーが MCP の Skills extension と protocol revision 2026-07-28 以降に対応している必要がある。実際に対応している公開サーバーは今回確認できなかった（modelcontextprotocol.io が ENOTFOUND）。社内で使っている Backlog MCP Server（nulab/backlog-mcp-server）の Releases にも skills 対応の記載はない。デモ用の最小サーバーを自作する必要がある可能性が高く、準備 30 分に収まるかは不明（推測）。
+  - Team プランでは Owner の操作が要る。個人の Pro / Max でのデモならすぐ使える。
+  - 使えない環境: `claude -p`、cloud sessions、GitHub Actions、Agent SDK、Bedrock / Agent Platform（Vertex）などのクラウドプロバイダ経由、HIPAA / ZDR 組織。VS Code 拡張は「rolling out」。
 - **一次情報 URL**:
-  - https://raw.githubusercontent.com/flutter/website/main/sites/docs/src/content/release/breaking-changes/material-ui-and-cupertino-ui.md （**取得・確認済み**。移行ガイドのソース）
-  - https://raw.githubusercontent.com/flutter/website/main/sites/docs/src/content/release/breaking-changes/index.md （**取得・確認済み**。「Released in Flutter 3.50」の破壊的変更 7 件）
-  - https://raw.githubusercontent.com/flutter/website/main/sites/docs/src/content/release/whats-new.md （**取得・確認済み**。11/11 Release 3.50）
-  - https://raw.githubusercontent.com/flutter/website/main/sites/docs/src/content/release/release-notes/release-notes-3.50.0.md （**取得・確認済み**。前半 10 万字のみ）
-  - https://raw.githubusercontent.com/flutter/flutter/stable/CHANGELOG.md （**取得・確認済み**。3.50.1 の hotfix 内容）
-  - 公開ページ（未取得。ENOTFOUND が続くため試していない）: https://docs.flutter.dev/release/breaking-changes/material-ui-and-cupertino-ui
-- **推測・未確認**:
-  - 同梱ライブラリを削除するバージョンは、一次情報に書かれていない。
-  - リリースノートの PR 一覧の要約に「AGP 9.x、最低 9.1.1」「Android 17（API 37）対応」とあった。ただし PR タイトルの要約なので、Android 側の必須要件かどうかは未確認。破壊的変更の一覧には AGP の項目はない。
-  - 既出の CocoaPods 候補（iOS ビルド）とは別の話題。ただ、同じ Flutter 3.50 の話なので、リードの判断で「Flutter 3.50 移行で踏むもの」として 1 枠にまとめる手もある（提案）。
-- **重複チェック**: 過去テーマ「Claude を使った Flutter モバイル開発の実践」は AI 活用の話で、こちらは SDK の移行の話なので重ならない。backlog にもない。
+  - https://code.claude.com/docs/en/changelog （**取得・確認済み**。2.1.332 / November 25, 2026）
+  - https://code.claude.com/docs/en/mcp.md （**取得・確認済み**。"Use skills from MCP servers" 節。"MCP skills are in public beta and require Claude Code v2.1.331 or later."）
+  - https://code.claude.com/docs/en/skills.md （**取得・確認済み**。MCP skills では frontmatter の `allowed-tools` などや `!` コマンドが無視される）
+  - https://code.claude.com/docs/en/hooks.md （**取得・確認済み**。ただし `PreSkillShellCommand` の詳細節は 10 万字以降で未読。lifecycle 表の記述のみ確認）
+  - https://modelcontextprotocol.io/extensions/skills/overview （**未取得: ENOTFOUND**。docs からのリンク先。Skills extension の仕様）
+- **重複チェック**: 却下済み「Gemini の Gem → skills 移行」（Gemini アプリ）、「Dart package skills」（pub パッケージ同梱）とは別物。ただし「skills」という言葉が 3 つ目なので、リードは区別して扱うこと。backlog の「Backlog MCP Server を Claude に繋ぐ最小構成」（保留）とは、MCP という点で隣接する。まとめるなら「MCP の新しい使い方」で 1 枠にする手もあるが、Backlog MCP は skills 非対応なのでデモはつながらない（提案）。「許可確認との付き合い方（auto mode）」とも権限ルールの話で一部重なるので、ここでは skills 固有の `Skill(...)` ルールに絞る。
 
-### 新規 2: Dart の package skills: `dart run skills@ get` で依存パッケージの AI 用スキルをまとめて入れる（新しさは弱い）
+### 新規 2: claude-code-action v1.0.288 の破壊的変更: fork からの PR を既定でスキップ（+ キャンセル時のトークン失効）
 
-- **リリース日**: docs の追加は 2026-08-31（site-www のコミット履歴）。skills CLI の 1.0.1 が 9/4、最新の 1.0.4 が 10/16（github.com/dart-lang/ai の Releases）。1.0.0 の日付は確認できず。**対象期間からは外れる**。11/11 の Flutter 3.50 の docs 更新で「新しい package skills ガイド」として AI ドキュメントが整理し直されたので、Flutter 側で目に入るのは今月から
-- **概要**: パッケージ作者が `skills/` ディレクトリに Agent Skills 仕様（SKILL.md）のスキルを同梱し、利用者は `dart run skills@ get` で `pubspec.yaml` の直接依存からスキルを集めて `.agents/skills/` などに入れる。`list` / `prune` / `remove` / `add <git_url>` / `create` がある。CHANGELOG によると Claude Code、Cursor、GitHub Copilot、Codex、Antigravity などの各エージェント向けのディレクトリに対応している。
-- **なぜ今話す価値があるか**: AI 活用の具体例で、Claude と Gemini のどちらでも使える。「どのエージェントでもパッケージの正しい API を使わせる」という、ツール比較ではない切り口が取れる。
-- **想定デモ**: 社内の Flutter プロジェクトで `dart run skills@ get --all` を実行し、入ったスキルを `list` で確認する。スキルがある場合とない場合で、エージェントの出力の違いを見せる（出力は毎回変わるので、リハーサルが必要）
+- **リリース日**: v1.0.288 は **2026-11-23**（PR #2114 のマージも 11/23）。同日の v1.0.287 で「実行がキャンセルされたらセッションを止めて app token を失効させる」。最新は v1.0.290（11/25）
+- **概要**: `allow_fork_prs` の既定値が `"false"` になった。fork PR へのメンションやプロンプト、fork の `pull_request` / review / `workflow_run` イベントでは Claude が動かず、ステップは警告付きで「成功（緑）」になる。そのため、**この action だけを走らせる required check は、レビューなしで通ってしまう**。issues・`workflow_dispatch`・`schedule` は影響なし。戻すには `with: allow_fork_prs: "true"`（先に docs/security.md の該当節を読むよう PR に書かれている）。`@v1` で固定しているワークフローには次のリリースで自動的に入る。カスタム `github_token` に `pull-requests: read` がないと "Could not find out whether pull request #N is from a fork." で失敗するようになった点も要注意。
+- **なぜ今話す価値があるか**: `@v1` を使っていれば、何もしなくても挙動が変わる。「緑なのにレビューされていない」は気づきにくい。
+- **想定デモ**: テスト用リポジトリで fork から PR → Actions ログに警告が出て緑で終わるのを見せる → `allow_fork_prs: "true"` で動くのを見せる。準備は 30 分程度でできる見込み（推測。リポジトリと API キーの用意が必要）
+- **評価上の注意（推測）**: 社内のリポジトリは private で、fork を使わない運用なら影響はほぼない。社内で claude-code-action を使っているかも未確認。実務への効きは低めになる見込みで、15 分枠よりも TOP1（`/code-review`）の枠で「CI 側の話」として 1 枚触れる程度が妥当かもしれない（提案）。
 - **一次情報 URL**:
-  - https://raw.githubusercontent.com/dart-lang/site-www/main/src/content/ai/package-skills.md （**取得・確認済み**）
-  - https://raw.githubusercontent.com/dart-lang/ai/main/pkgs/skills/CHANGELOG.md （**取得・確認済み**。日付の記載なし）
-  - https://github.com/dart-lang/ai/releases （**取得・確認済み**。skills-v1.0.1〜v1.0.4 の日付。年の表記はないが 2026 年と判断した）
-  - https://github.com/dart-lang/site-www/commits/main/src/content/ai/package-skills.md （**取得・確認済み**。初回コミットは 2026-08-31）
-  - 未取得（検索結果のみ）: https://dart.dev/blog/skills-cli-1-0-bundle-and-distribute-ai-agent-skills-for-your-packages 、https://pub.dev/packages/skills
-- **推測・未確認**:
-  - 社内で使っている主要パッケージ（Firebase など）が、実際に `skills/` を同梱しているかは未確認。同梱が少なければ、デモの見栄えが落ちる。
-  - 新しさは 2〜3 点と見る（推測）。
-- **重複チェック**: 却下済みの「Gemini の Gem → skills 移行」は Gemini アプリ（Workspace）の機能で、別物。ただし「skills」という言葉が同じなので、リードは区別して扱うこと。過去テーマ「Claude を使った Flutter モバイル開発」とは、Claude に特化しない点で切り分けられる。ただし Claude Code でデモすると見た目が重なるので、Gemini CLI か Antigravity でのデモを推奨する（提案）。
-
-### 新規 3: Firebase CLI v15.37.0: Cloud Functions の Node.js 26 ランタイム（Preview）と、Crashlytics MCP でクラッシュを AI に調べさせる（新しさは弱い）
-
-- **リリース日**: firebase-tools v15.37.0 は 11/19。v15.36.0 は 11/11
-- **概要**:
-  - v15.37.0 で、Cloud Functions に Node.js 26 ランタイムのサポートが追加された（Preview）。Node.js 26 は 2026-10-28 に LTS（'Lithium'）になっている。
-  - 同じリリースで、`@modelcontextprotocol/sdk` などの critical / high のセキュリティ修正、`firebase deploy --dry-run` が Firestore DB を作ってしまう不具合の修正、Crashlytics MCP の `get_report` への `filterExpression` 追加があった。v15.36.0 では `list_events` にも `filterExpression` が追加されている。
-  - Crashlytics の MCP ツール自体は以前からある（v15.27.0、8/13 に Web アプリにも対応）。
-- **なぜ今話す価値があるか**: Flutter + Firebase の構成なら、モバイルとインフラの両方に効く。セキュリティ修正が入っているので、CLI の更新を促す意味もある。
-- **想定デモ**: `npx -y firebase-tools@latest mcp` を MCP サーバーとして登録し、Crashlytics の上位クラッシュを filterExpression で絞り込んで、AI に原因の候補を挙げさせる。実データのある Firebase プロジェクトが必要
-- **一次情報 URL**:
-  - https://github.com/firebase/firebase-tools/releases （**取得・確認済み**。v15.37.0 / v15.36.0。年の表記はないが 2026 年と判断した）
-  - https://github.com/firebase/firebase-tools/releases?page=2 （**取得・確認済み**。v15.27.0 の Crashlytics MCP の Web 対応）
-  - https://github.com/nodejs/node/releases （**取得・確認済み**。Node.js 26 の LTS 移行は 10/28）
-  - https://firebase.google.com/docs/crashlytics/ai-assistance-mcp （**取得失敗: ENOTFOUND**。セットアップ手順は検索結果の要約のみ）
-- **推測・未確認**:
-  - 中核の「Crashlytics MCP の使い方」は二次情報（検索要約）だけ。根拠ルールの減点対象になりうる。
-  - 社内アプリが Crashlytics を使っているかは未確認。
-  - 1 リリースとしては中身が薄く、単独枠にするなら「Crashlytics × MCP」に寄せる必要がある。
-- **重複チェック**: backlog・過去テーマとの重複はない。
+  - https://github.com/anthropics/claude-code-action/releases （**取得・確認済み**。v1.0.283〜v1.0.290 の日付）
+  - https://github.com/anthropics/claude-code-action/releases/tag/v1.0.288 （**取得・確認済み**）
+  - https://github.com/anthropics/claude-code-action/pull/2114 （**取得・確認済み**。挙動の詳細と opt-in 方法）
+- **重複チェック**: backlog の `/code-review`（ローカル / マネージド版）とは別のプロダクト。過去テーマ「Copilot から Claude への乗り換え比較」とも重ならない。
 
 ---
 
-## 既出候補の更新
+## 既出の更新
 
-### 更新 1: CocoaPods trunk read-only（12/2）と Flutter の SwiftPM【backlog: 14 点・TOP3 条件付き】
+### 更新 1: GitHub Actions ランナーイメージの 11 月の変更【backlog: 15 点・次点・条件付き】
 
-- **確定したこと（一次情報）**: Flutter docs のソースに "As of the 3.44 release, Flutter's Swift Package Manager (SwiftPM) support is on by default." とある。backlog で「推測」とされていた「3.44 から既定」は、**一次情報で確認できた**。
-- 同じページに "the CocoaPods registry permanently becomes read-only on December 2, 2026" とある。12/2 を Flutter 公式も明記している。
-- SwiftPM に対応していない依存については、Flutter が CocoaPods にフォールバックする（"Flutter falls back to CocoaPods for dependencies that don't yet support Swift Package Manager."）。将来は SwiftPM を無効にできなくなる、とも書かれている。
-- **デモへの影響**: フォールバックしているプラグインを一覧にするコマンドは、docs に書かれていない。確認方法として書かれているのは、Xcode で `FlutterGeneratedPluginSwiftPackage` が target dependency になっているかを見ることだけ。デモ「フォールバックしているプラグインの洗い出し」は、Podfile.lock などを手で確認する形になる（推測）。
-- **評価への影響（提案）**: 推測が 1 つ減る。15 分で話せるか / デモ映えは据え置き。新規 1（material_ui 移行）とまとめて「Flutter 3.50 移行で踏むもの」の 1 枠にする選択肢もある。
-- **URL**: https://raw.githubusercontent.com/flutter/website/main/sites/docs/src/content/packages-and-plugins/swift-package-manager/for-app-developers.md （**取得・確認済み**。前回 404 だった `src/content/...` のパスは誤りで、正しくは `sites/docs/src/content/...`）
+- **#15373（11/20 起票、11/23 に pin）**: Windows Server 2025 と Windows 11 Arm64 のイメージが Visual Studio 2027 になった。VS 2026 のラベル `windows-2025-vs2026` / `windows-11-vs2026-arm` は **12/1 から非推奨化が始まる**。移行先は `windows-latest` / `windows-2025` / `windows-11-arm`。前回の「未確認の手がかり」はこれで一次確認できた。
+- **注意**: 11/22 に「VS 2027 の公式ライフサイクル情報が見当たらない」というコメントがある（ランナー側の告知としては一次情報だが、VS 2027 そのものの位置付けは未確認）。11/25 に「VS 2027 イメージで `clang-cl` が壊れた（STL が Clang 22 以上を要求、イメージは Clang 20）」という報告があり、関連 issue #15368（11/19、LLVM 22 への更新要望、Open、PR #15370 待ち）に紐づけられている。回避策は LLVM 22 を手動で入れるステップ（#15368 の記載）。
+- **評価への影響（提案）**: 社内の Windows / C++ ビルドは少ないと思われる（推測）ので、実務への効きは上がらない。ただし「`-latest` ラベルの棚卸し」という同候補の軸に、12/1 という具体的な日付が 1 つ増える。
+- **URL**: https://github.com/actions/runner-images/issues/15373 （**取得・確認済み**）/ https://github.com/actions/runner-images/issues/15368 （**取得・確認済み**）/ https://github.com/actions/runner-images/issues?q=is%3Aissue+label%3AAnnouncement+sort%3Acreated-desc （**取得・確認済み**。11/25 以降の新しい Announcement はなし。最新は #15397 Xcode 27 GA、11/23）
 
-### 更新 2: `gh event listen`【backlog: 14 点・保留】
+### 更新 2: `gh event listen` 枠【backlog: 14 点・保留】に gh v2.106.0（11/25）
 
-- GitHub Releases の表示では、v2.105.0 のリリース日は **11/18**（backlog では告知 11/17。タイムゾーンの差か、告知とリリースの日付が違う可能性がある）。v2.105.0 の後に新しいリリースはない。
-- 追加で確認できたこと: `--count` / `--follow`、出力は CloudEvent JSON、`gh pr` / `gh run watch` などが `gh event listen` を案内するようになった。ウェイトリスト制の状況は、新しい情報なし。
-- URL: https://github.com/cli/cli/releases （**取得・確認済み**）
+- `gh event` 自体の変更は、docs に「Event Streams は同じイベントを 2 回以上届けることがある」と追記されただけ（#15094）。preview・ウェイトリスト制は変わらず。
+- 同じリリースで **セキュリティ修正 7 件**（GHSA-45h6-2fh4-pr93 ほか。多くは端末制御文字の未エスケープ、`gh skill update` が同名の別リポジトリの skill を入れてしまう GHSA-q2rq-2r2v-2jm5 など）。リリースノートは "Users are advised to update `gh` to version `v2.106.0` as soon as possible." と書いている。
+- `gh auth logout` が OAuth トークンを**失効させてから**ローカル資格情報を消すようになった（`--no-revoke` で旧挙動）。Git credential helper に保存された HTTPS 資格情報も消す。
+- **評価への影響（提案）**: 単独枠にするほどではない。`gh event listen` を話すなら「v2.106.0 以上で」と添える。全社向けの周知（gh を上げる）としては有用。
+- **URL**: https://github.com/cli/cli/releases （**取得・確認済み**）/ https://github.com/cli/cli/releases/tag/v2.106.0 （**取得・確認済み**）
 
-### 参考: Claude Code・Gemini CLI（変更なし）
+### 更新 3: Backlog MCP Server【backlog: 14 点・保留】
 
-- Claude Code の最新は 2.1.331（11/23）のまま。それより新しいエントリはない（https://code.claude.com/docs/en/changelog 、取得・確認済み）。
-- Gemini CLI は v0.71.0 / v0.71.1（11/24、A2A サーバーの認証修正）、v0.72.0-preview.0（11/24）が出た（https://github.com/google-gemini/gemini-cli/releases 、取得・確認済み）。小さな修正だけなので、却下判断は変わらない。
+- v0.23.4（11/18）が出ていた。中身は依存更新（backlog-js 1.1.0）と Actions のピン留め、docs の修正だけで、新機能はない。新規 1 の Skills over MCP には対応していない（Releases に記載なし）。
+- CVE-2026-111768 は Releases の v0.23.3 の記載にも同じ番号で出ている。ただし NVD / GHSA での確認はまだ（github.com の advisory ページは今回見ていない）。
+- **URL**: https://github.com/nulab/backlog-mcp-server/releases （**取得・確認済み**）
+
+### 参考: Claude Code 2.1.332（11/25）で既出候補に関係するもの
+
+- VS Code 拡張（backlog: TOP3 条件付き）: 提案された diff を閉じて編集が適用されなかったときの通知が増えた。サイドバーで `/rewind` すると自分のペースで回る `/loop` が止まる旨の警告が追加された。デモの挙動に小さく影響する程度。
+- `/loop`・`/schedule` の表示で「routine」が「cloud scheduled task」に言い換えられた（`/routines` は引き続き使える）。TOP1 の `/loop` パートのスライドの用語に注意。
+- `/permissions` が「次回起動時に無視されるルール」を拒否し、理由を表示するようになった。許可確認の候補（次点）の補足になる。
+- 出典: https://code.claude.com/docs/en/changelog （**取得・確認済み**。2.1.332 の Changed 約 30 件・Bug fixes 93 件のうち、主要部分のみ確認）
 
 ---
+
+## 未確認の手がかりの確認結果（前回レポートから）
+
+| 手がかり | 結果 |
+|---|---|
+| Flutter 3.51 beta（3.51.0-0.2.pre、11/18） | beta ブランチの 11/18 のコミットは、3.50.1 と同じ Android ビルド修正（split APK の versionCode #196924、dotfile アセット #196747 など）と flutter_tools の修正の cherry-pick だけ。3.51 固有の新機能は、docs の whats-new・breaking-changes（"Not yet released to stable" 節はコメントアウトされていて空）・beta の CHANGELOG（3.47 までしか載っていない）のどこにも記載がない。**勉強会ネタになる中身はなし**。タグは 3.51.0-0.1.pre（11/10）と 0.2.pre（11/18）のみで、11/19 以降のタグはない |
+| runner-images #15373（VS 2027） | 一次確認済み。上の「更新 1」 |
+| Backlog の新プラン（2027-01-01） | nulab.com が ENOTFOUND で一次情報は取れず。検索要約では「現行プランの新規契約は 2026-12-31 で終了、2027-01-01 からエコノミー / ビジネス / プロフェッショナルの 3 プラン、既存ユーザーは 2027-01-01 以降最初の契約更新日に移行」（二次情報、@IT 2026-07-24）。技術ネタではないので候補にしない |
+| Backlog のプロジェクト横断ガントチャート | 今回も確認できず（検索でも出てこない） |
 
 ## 調べたが候補にしなかったもの
 
-- **Node.js**: 11/11 に 26.13.1 / 24.22.3 / 22.23.5 のセキュリティリリース。27.0.0 は alpha のみ。単独ネタとしては弱い（新規 3 の背景として使った）。
-- **Terraform v1.17.2（11/11）**: 小さな修正のみ。
-- **Next.js**: 11/16〜23 は v16.5.0-canary だけで、stable のリリースはない。
-- **TypeScript**: 10/25 以降は vscode-typescript v1.0.2（11/6、TS 7.0.2 を同梱）だけ。TS 7.0 本体のリリース日は確認できなかった。
-- **GitHub Actions runner**: 最新は v2.338.2（10/26、内部 Node を 24 に移行）で、対象期間外。macOS 14 ランナーの廃止（11/2）は検索要約のみで、github.blog は未取得。
-- **Dart 3.14**: main の CHANGELOG では 3.14.0 は "Unreleased" と表示されていた（main ブランチのため）。前回のとおり、stable 3.14.1 は 11/17。`dart migrate`、`dart run -e` などの新機能は、新規 1 の補足になる程度。
-- **Google Workspace / Gemini**: 検索では、Gemini skills の第 2 波（11/30〜）と Gmail の Gemini 対象拡大（11/10）だけ。skills は却下済み。どちらも一次情報の本文は取れていない。
-- **Backlog**: 11 月のリリース情報は見つからなかった。2027-01 のプラン刷新（@IT、7/24）は既知。backlog.com も ENOTFOUND。
-- **GCP**: cloud.google.com/release-notes は docs.cloud.google.com へリダイレクトされ、そのホストが ENOTFOUND。
+- **Dart 3.15**: main の CHANGELOG では Unreleased。dev タグ 3.15.0-181.0.dev（11/26）まで。`this` の型昇格、import/export の `show`/`hide` を 1 つまでに制限（言語版 3.15 以降はエラー）などがあるが、stable はまだ。stable が出たら候補になる。
+- **Vite**: v8.4.0-beta.2（11/25）。stable の最新は v8.3.8（11/11）。beta のみなので見送り。
+- **Next.js**: 11/16〜23 は v16.5.0-canary だけ。
+- **TypeScript**: 11/12 以降のリリースなし（7.1 Beta は 10/20）。
+- **Gemini CLI**: 11/24 の v0.71.1 / v0.72.0-preview.0 以降のリリースなし。
+- **Firebase CLI**: v15.37.0（11/19）以降のリリースなし。
+- **GCP / Google Workspace**: 一次情報のホストが前回同様に読めないため、今回は試していない。
 
 ---
 
@@ -120,16 +108,15 @@
 
 | URL | エラー |
 |---|---|
-| https://firebase.google.com/docs/crashlytics/ai-assistance-mcp.md.txt | `getaddrinfo ENOTFOUND firebase.google.com` |
-| https://docs.cloud.google.com/release-notes | `getaddrinfo ENOTFOUND docs.cloud.google.com`（cloud.google.com/release-notes からの 301 リダイレクト先） |
-| https://backlog.com/ja/blog/ | `getaddrinfo ENOTFOUND backlog.com` |
-| https://github.com/flutter/website/tree/main/src/content/release/release-notes | HTTP 404（パスの誤り。正しくは `sites/docs/src/content/...`） |
+| https://nulab.com/whats-new/backlog/ | `getaddrinfo ENOTFOUND nulab.com` |
+| https://modelcontextprotocol.io/docs/2026-07-28/develop/build-with-agent-skills.md | `getaddrinfo ENOTFOUND modelcontextprotocol.io` |
 
-ENOTFOUND が続いたため、ツールの指示に従い、ほかの外部ホストの取得は試していない。dart.dev / docs.flutter.dev / pub.dev / github.blog / workspaceupdates.googleblog.com / nulab.com / workspace.google.com は、検索結果に出ただけで未取得。
+ENOTFOUND が出たため、ツールの指示に従って他の外部ホストは試していない。次は検索結果に出ただけで未取得: modelcontextprotocol.io/extensions/skills/overview（docs 内リンク）/ docs.flutter.dev / atmarkit.itmedia.co.jp / codezine.jp。
 
-取得できたホスト: code.claude.com / github.com / raw.githubusercontent.com（cloud.google.com はリダイレクトの応答だけ返った）
+その他の注意:
+- https://raw.githubusercontent.com/flutter/flutter/beta/CHANGELOG.md は取得できたが、3.47 までしか載っておらず 3.51 の記載はなかった。
+- https://code.claude.com/docs/en/hooks.md は 30 万字あり、`PreSkillShellCommand` の詳細節（10 万字以降）は未読。
 
 **運用上の提案**:
-- Flutter / Dart の docs は、`raw.githubusercontent.com/flutter/website/main/sites/docs/src/content/<docs のパス>.md` と `raw.githubusercontent.com/dart-lang/site-www/main/src/content/<パス>.md` で読める。次回からこの方法を使えば、Flutter 側の偏りは解消できる。
-- 新たに許可が必要なホスト: firebase.google.com / docs.cloud.google.com / backlog.com（これまでに挙がったホストに追加）。
-- 毎回、PostToolUse フックのエラー（`/root/.claude/hooks/wf-collector.py` が見つからない、`base64: invalid input`）が出ていた。調査自体には影響なし。
+- ネットワーク許可が必要なホストに **modelcontextprotocol.io** を追加する（新規 1 の Skills extension 仕様の一次情報）。nulab.com は前回からの継続。
+- 今回も PostToolUse フックのエラー（`/root/.claude/hooks/wf-collector.py` が見つからない、`base64: invalid input`）が毎回出た。調査には影響なし。
