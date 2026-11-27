@@ -1,199 +1,195 @@
-# critic レビュー（2026-11-26 JST 実行）
+# critic レビュー（2026-11-27 JST 実行）
 
-- 対象: notes/trend-scout.md（新規 2・更新 3）、notes/practitioner.md（新規 3・更新）
-- 照合: CLAUDE.md（評価基準・根拠ルール・過去テーマ 3 件）、backlog.md（候補 8・却下 7）、reports/2026-11-25.md
-- critic が今回自分で取得して確認した URL: 末尾の「確認した URL」10 件
+- 対象: notes/trend-scout.md（新規 1・更新 2・参考 1）、notes/practitioner.md（新規 0・更新 2・参考 2）
+- 照合: CLAUDE.md（評価基準・根拠ルール・過去テーマ 3 件）、backlog.md（候補 9・却下 9）、reports/2026-11-26.md
+- critic が今回自分で取得して確認した URL は末尾にまとめた
 
 ## 結論サマリ
 
-| ID | 候補 | 判定 | 一言 |
-|---|---|---|---|
-| T1 / P2（統合） | Skills over MCP（public beta） | **条件付き（現状は保留が妥当）** | 事実はすべて一次情報で裏付けられた。ただし社内で skills を返すサーバーが 1 つもなく、Team 組織では既定で OFF なので「明日試せる」が成り立たない。T1 の「`PreSkillShellCommand` で配られた skill を守る」は**誤り**（MCP skill では `!` が実行されない） |
-| P1 | `PreSkillShellCommand` hook | **条件付き（既出「許可確認との付き合い方」に統合するのが第一案）** | 根拠・デモとも確実。単独枠では対象者が狭い。T1 への統合は筋が悪い |
-| P3 | gh v2.106.0 の脆弱性修正と `gh auth logout` | **却下（単独枠として）** | 中身は「上げよう」の 1 行。勉強会を待たずに社内チャットで周知すべき内容。保留中の `gh event listen` 枠に載せるのも不適 |
-| T2 | claude-code-action `allow_fork_prs` 既定 false | **却下** | 社内で action を使っているか未確認で、private 中心なら fork の影響はほぼない。TOP1 に足すと要点が 3 つを超える |
+| 項目 | 判定 | 一言 |
+|---|---|---|
+| 新規: Vite v8.4.0（`server.fs.strict: 'extended'`） | **却下（単独枠として）** | 事実は正しい。ただし Web 限定で opt-in の細かい設定。前提説明が重く、デモも未検証。見立ては 12 点 |
+| 更新: GitHub MCP Server v2.2.0 の skills 対応 → Skills over MCP | **点は据え置き（14・保留）** | サーバー側だけでなく**クライアント側のフラグ（`MCP_SKILLS=true`）も必要**と PR に明記されている。trend-scout はこれを「テストの条件」としてしか書いていない。Claude Code で受け取れるかは未確認のまま |
+| 更新: `/loop` の上限 7 日 → 30 日（2.1.330） | **条件付きで TOP1 に 1 行だけ補足してよい** | 事実は正しい（changelog と scheduled-tasks.md の両方で確認）。ただし対象は**セッション内のタスク（`/loop` と `CronCreate`）だけ**で、cloud scheduled task の話ではない。TOP1 は前回から用語を「cloud scheduled task」に揃えたので、混同しないこと |
+| 更新: runner-images #15368 Close | **判断の変更なし。追跡もやめる** | issue を立てた本人が、タイトルを "It outdated" に変えて自分で閉じただけ。メンテナが対応した形跡はない。Announcement でもない |
+| 更新: claude-code-action v1.0.289 / v1.0.290 | **判断の変更なし（却下のまま）** | どちらも修正 1 件ずつ |
+| 参考 → 再検討: Claude アプリ 11 月のリリースノート | **条件付き（Computer use 1 本に絞って保留で登録）** | 4 機能を束ねる案は不可。**Monthly recap は Team が対象外**（対象プランは Free / Pro / Max / Ultra）。Computer use は Owner が有効にするまで既定で OFF |
+| 参考 → 再検討: managed `extraKnownMarketplaces` の自動更新（11/30 以降） | **勉強会ネタではなく周知事項** | 関係するのは managed settings の管理者だけ。期限まであと 3 日なので、勉強会を待たずに人間に確認する |
 
-新規候補で、そのまま採用できるものはない。
+単独で 1 枠になる新候補は今回もない。TOP3 の入れ替えは不要。
 
 ---
 
-## T1 / P2: Skills over MCP（public beta）
+## 1. 新規: Vite v8.4.0（`server.fs.strict: 'extended'` ほか）
 
 ### 既出チェック
 - 過去テーマ 3 件とは重ならない。
-- 却下済みの「Gem → skills」（Gemini アプリ）、「Dart package skills」（pub 同梱）とは仕組みが別。ただし「skills」を名前に含む候補はこれで 3 つ目。リードはタイトルで区別がつくようにすること（「MCP サーバーから配られる skill」など）。
-- backlog の「Backlog MCP Server」（保留）と隣接する。ただし Backlog MCP は skills 非対応なので、統合してもデモはつながらない。trend-scout の判断は妥当。
+- 却下済みの「Vite+ 安定版 / Vinext 1.0」（11/23）とは別物。ただし却下理由の 1 つ「Web 限定」が、この候補にもそのまま当てはまる。create-vite@9.4.0 の `vp` 対応に触れると、却下済みのネタを持ち込むことになる。触れないこと。
 
 ### 根拠チェック（一次情報。critic が取得して確認）
-- changelog 2.1.332（2026-11-25）の Added に "Added skills from MCP servers (beta). They show as `server:skill` in the `/` menu" があることを確認した。**2.1.331 の項目に MCP skills の記載はない**。
-- mcp.md の "Use skills from MCP servers" 節に、次の記述があることを確認した。
-  - "MCP skills are in public beta and require Claude Code v2.1.331 or later."
-  - "With `/login` on a Team or Enterprise plan, they're off until your organization turns them on."
-  - 有効化の手順。Owner が Organization settings > Connectors で **Skills over MCP** をオンにし、Skills 設定もオンにする。connector 以外のサーバーは `disableDirectMcpSkills: false`
-  - `Skill(mcp__docs__*)` / `Skill(docs:pdf)` のルール表、「Allow this version」、スキャンの対象（Directory の第三者 connector と、Enterprise のカスタム connector だけ）
-  - 非対応の環境（cloud sessions、`claude -p`、GitHub Actions、Agent SDK、クラウドプロバイダ、HIPAA / ZDR）
-  - **両ノートとも書いていない条件が 2 つある**: (a) Fable、または Opus 4.8 / Sonnet 5 / Haiku 5.5 以降のモデルが必要 (b) Anthropic に直接接続し、feature flag fetching をオンにする必要がある（`DISABLE_TELEMETRY` などを設定していると動かない。`/status` の Features 行で確認）。
-  - "During the beta, Anthropic keeps skills off for some connectors, and no setting changes that."
-- **版ずれ**: changelog は 2.1.332、docs は 2.1.331 以上。2.1.331 の changelog に記載がない以上、スライドとデモは「2.1.332 以上」で統一すべき。「2.1.331 から使える」と言ってはいけない。
-- skills.md で「MCP skill では `!` コマンドが実行されない（"they don't run"）、`@` 参照は添付されない、`allowed-tools` や `hooks` などの frontmatter は無視される」ことを確認した。P2 の記述は正しい。
-- **T1 の誤り（重要）**: T1 は構成案 (3) と「関連」で、`PreSkillShellCommand` を Skills over MCP の防御策として扱っている（「配られた skill が勝手にコマンドを実行しないか」）。しかし MCP skill では、もともと `!` が実行されない。`PreSkillShellCommand` が守るのは、ローカル・プラグイン・組み込みの skill とコマンドである。MCP skill の本当のリスクは、docs の警告にあるとおり「skill の指示文で Claude を誘導すること（prompt injection）」と「サーバー側がいつでも中身を変えられること」であり、hook では止められない。T1 の構成のままでは誤情報を発表することになる。
-- **デモ用サーバー**: 両ノートの「見つからない」は更新できる。critic が github.com で確認したもの。
-  - `modelcontextprotocol/experimental-ext-skills`: Skills extension（SEP-2640）の本体。base protocol は 2026-07-28 で、Beta 段階（"may make breaking changes"）。実行できるサンプルサーバーがあるかは、README からは確認できなかった。
-  - `olaservo/skills-over-mcp-demo`: 個人のデモサーバー。v2 TypeScript SDK を使い、`dice-roller` などの skill が入っている。`npm install && npm run build && node dist/http.js --port 3000` でローカルに立てられる。公開エンドポイント（Hugging Face Space）もある。ただし README に Claude Code の記載はなく、**Claude Code で `server:skill` として表示されるかは未検証**。コミットは 7 件で、保守されるかも分からない。
-  - したがってデモは「自作が必要」から「既存のデモサーバーで成立する可能性がある（要リハーサル）」に変わる。第三者の公開エンドポイントは社内デモで使わず、ローカルで立てること。
+- リリースページ: 「26 Nov」に公開。ページに年の表記はない。Features に "add `server.fs.strict: 'extended'`" と "add `environment.addSafeModule`"、Bug Fixes に "register references to safe modules only for `server.fs.strict: 'extended'`" がある。"deprecate `--configLoader=runner`"、"migrate to `dev.sourcemap.css` from `css.devSourcemap`"、"remove `optimizeDeps.rollupOptions`" もある。「Breaking Changes」の節はない。本文に "security" という語はない。**trend-scout の記述と一致する。**
+- server-options.md: Type は `boolean | 'extended'`、既定は `true`。"Set to `'extended'` to also apply the access checks to modules `load`ed by plugins except with the IDs starting with `\0`." **一致する。**
+- PR #23972: 11/12 にマージ。本文は "applies the checks to more requests" の 1 文だけ。advisory や issue への言及はない。ラベルは `p2-nice-to-have`。**後続の修正 PR #24206 が 11/25（stable の前日）にマージ**されている。出たばかりで、挙動がまだ固まっていない可能性がある。
+- `addSafeModule`: server-options.md には記述がない。検索結果の要約によると、vite.dev の Environment Plugins ガイドに「dev 中に `this.environment.addSafeModule(id)` で、`server.fs.allow` の外にあるモジュールの読み込みを許可する」とある。**本文は未取得。**
+
+### 誇張の指摘
+- 「Web フロントの全員に関係し、設定 1 行で強化できる」は**言い過ぎ**。
+  - 既定（`true`）のままで `/@fs/` 経由の配信はすでに制限されている。`'extended'` が足すのは「plugin の `load` が返すモジュール」への検査だけ。
+  - 外部に dev サーバーを公開していない（`server.host` を使っていない）チームにとって、実害は小さい（推測）。
+  - 1 行で済むとは限らない。ワークスペース外のファイルを正当に読む plugin は壊れる可能性がある。だから `addSafeModule` が同時に追加されている。「1 行で強化」ではなく「有効にすると plugin 側の対応が要ることがある」が正しい。
+- 「セキュリティ修正とは言わない」という trend-scout の注意は妥当。根拠にも脆弱性への言及はない。
 
 ### 時間チェック
-- P2 の構成（違い 4 分 / 管理者の設定 6 分 / 非対応環境 5 分）は、デモがほとんどなく、設定項目の読み上げになっている。15 分で話せはするが、CLAUDE.md の「デモできる」「すぐ試せる」に合わない。
-- 非対応環境の一覧で 5 分使うのは多すぎる。1 枚の表にして 1 分で済ませるべき。
+- 話すには前提が 3 つ要る。(a) `server.fs.allow` とワークスペース root の自動検出、(b) plugin の `resolveId` / `load` フック、(c) `\0` で始まる仮想モジュールの慣習。Vite の plugin を書いたことがない人には、この説明だけで 5〜7 分かかる。
+- 残りの改善（manifest に worker chunk、CSS preload の再試行、SSR bundled dev、WASM source phase import）は、互いに関係のない小ネタの羅列になる。要点が 3 つに収まらない。
 
 ### 対象チェック
-- **ここが一番弱い**。社内で使っている MCP サーバー（Backlog MCP、GitHub MCP）は、どちらも skills を返すことが確認できていない。つまり、組織で有効にしても今日の時点で受け取る skill はない。「有効にするか決める判断材料」は、実際には Owner（管理者）1〜数名向けの話で、参加者の多くには「将来こうなる」で終わる。
-- Team 組織では Owner が有効にするまで OFF なので、参加者が翌日に試すこともできない（個人の Pro / Max に切り替えれば試せるが、会社の端末で個人プランを使うことは社内ルールに関わる）。
+- モバイル（Flutter 中心）とインフラには関係しない。Web の中でも、Vite を使っていて plugin を書く・選ぶ人に限られる。社内で Vite を使っているかも未確認。
 
-### 結論: 条件付き（現状は保留が妥当）
-直す点（すべて満たせば採用を検討してよい）。
-1. **`PreSkillShellCommand` をこの枠から外す**。もし触れるなら「MCP skill では `!` が動かないので、この hook は関係しない」と正しく説明する。
-2. 対応版は「2.1.332 以上」で統一する。モデルと feature flag fetching の条件を追加する。
-3. デモは `olaservo/skills-over-mcp-demo` をローカルで立て、次を事前にリハーサルで確認する: `/` に `server:skill` が出るか → `/permissions` で `Skill(mcp__<server>__*)` を ask / deny にしたときの違い → サーバー側で SKILL.md を書き換えて「Allow this version」の再承認が出るか。最後の再承認は「サーバーが中身を変えられる」リスクを見せられるので、一番価値のあるデモになる。
-4. 人間に確認する: 社内 Team 組織の Owner が、デモのため（またはデモ後に）Skills over MCP を有効にする意思があるか。なければ、参加者は持ち帰って試せない。
-- 採点の目安（critic 案）: 新しさ 5 / 実務への効き 2〜3（現時点で社内の配布元がない）/ 15 分 4 / デモ映え 2（リハーサルで確認できれば 3）= **13〜15**。現在の TOP3（18 / 17 / 16）には届かない。T1 の自己評価「本命」は甘い。
-
----
-
-## P1: `PreSkillShellCommand` で skill の `!` を検査する
-
-### 既出チェック
-- 過去テーマとは重ならない。
-- backlog の「Claude Code の許可確認との付き合い方（auto mode + 無人 deny 設定）」（15 点・次点）と同じ領域（どこで止めるか）にある。重複ではないが、別々の枠にすると、参加者から見ると同じ話を 2 回聞くことになる。
-
-### 根拠チェック（hooks.md の PreSkillShellCommand 節を critic が取得して確認）
-- "requires Claude Code v2.1.332 or later"。2.1.331 では `Unknown hook event "PreSkillShellCommand" was ignored` の警告が出る。`requiredMinimumVersion` についての記述も確認した。
-- matcher は `Bash|PowerShell`。async の hook はブロックできない。`onFailure: "block"` を推奨。
-- exit 2 / `permissionDecision: "deny"` / `decision: "block"` でブロックすると、skill は読み込まれ、出力の位置には `[not run: blocked by hook: <reason>]` が入る。**`ask` / `defer` / `updatedInput` も deny と同じ扱いになる**（P1 の「ブロック専用」は正しい）。
-- 入力の `command_name` / `command_source` / `invoked_by` も確認した。ただし docs の `command_source` の例は `userSettings` / `plugin` / `builtin`。P1 の書いた `projectSettings` は docs の例にはない（存在しそうだが、未確認として扱うこと）。
-- auto mode で、読み込み後に Claude がツールとして再実行すると PreToolUse 側で発火する。そのため「keep your script on both events」とあり、P1 の記述と一致する。
-- テスト手順（`.claude/skills/hook-test/SKILL.md`、`/hook-test`、期待される出力 `Not run in /hook-test: echo 'rm -rf' (blocked by hook: ...)`）も docs どおり。**デモが確実に成立する**のが、この候補の一番の強み。
-- 補足（P1 に書かれていない点）: skills.md には、以前から `disableSkillShellExecution: true` で `!` の実行そのものを止める設定がある。「これまでは止められなかった」という言い方は**不正確**。正しくは「全部止めるか、何も止めないかしか選べなかったのが、コマンドごとに検査できるようになった」。スライドで盲点を強調しすぎないこと。
-
-### 時間チェック
-- 4 / 7 / 4 分の構成は無理がない。デモの準備は docs の手順をなぞるだけで 15 分程度でできる見込み（推測）。
-- ただし構成 (3) の「両方の hook に登録する」「requiredMinimumVersion」は細かく、前提として PreToolUse hook を知らない人には説明が必要になる。参加者が hooks を使ったことがなければ、前提の説明で 3〜4 分かかる。
-
-### 対象チェック
-- `!` 埋め込みを使う skill を書いている人、または他人の skill やプラグインを入れる人に限られる。モバイル / Web / インフラのどれにも同じように関係するが、全体の割合は小さい（推測）。実務への効き 3 は妥当で、甘くはない。
-
-### T1 との統合案について
-- **反対**。上で書いたとおり、MCP skill では `!` が実行されないので、P1 の hook は T1 の脅威に効かない。1 枠にすると「MCP で配られた skill を hook で守れる」という誤解を招く。
-
-### 既出「許可確認との付き合い方」への統合案について
-- **賛成（第一案）**。auto mode の deny 設定 → `/permissions` が無効なルールを拒否するようになった点（2.1.332、changelog で確認済み）→ skill の `!` は PreToolUse を通らないので `PreSkillShellCommand` も登録する、という流れで「止める場所の全体像」になる。既出候補に 11/25 の新要素が 2 つ加わり、新しさを補強できる。
-- 条件: 要点が 3 つを超えないように、既出候補の「無人実行の deny 設定」の部分を短くし、`PreSkillShellCommand` を 4 分のパートとして入れる。デモは `/hook-test` の 1 本だけにする。
-
-### 結論: 条件付き
-- 第一案: 「許可確認との付き合い方」に 4 分パートとして統合する。統合後の既出候補は、新しさ +1 の余地がある（リードの判断）。
-- 第二案（単独枠にする場合）: 「盲点」という言い方を「`disableSkillShellExecution`（全部止める）と `PreSkillShellCommand`（選んで止める）の使い分け」に直す。`projectSettings` の例は外すか、実機で確認する。自己採点 17 は高すぎる。新しさ 5 / 実務への効き 3 / 15 分 3（hooks の前提説明が要る）/ デモ映え 4（端末の 1 行が出るだけ）= **15** が妥当。
-
----
-
-## P3: gh v2.106.0 の脆弱性 7 件修正と `gh auth logout` のトークン失効
-
-### 既出チェック
-- 既出の `gh event listen`（14 点・保留）と同じ gh だが、内容は無関係。v2.106.0 での event の変更は docs 1 行（「同じイベントが 2 回以上届くことがある」）だけ。
-
-### 根拠チェック（リリースページを critic が取得して確認）
-- 7 件の GHSA ID と内容、"update `gh` to version `v2.106.0` as soon as possible"、`gh auth logout` の revoke と `--no-revoke`、Git credential helper から HTTPS 資格情報を消す点は、すべて一致した。
-- 深刻度はリリースページに書かれていない（P3 の注意書きのとおり）。`GH_TOKEN` で渡したトークンを revoke するかどうかも書かれていない。
-- 一次情報としては十分。
-
-### 時間チェック
-- 15 分は持たない。7 件の GHSA のうち 4 件は「端末の制御文字のエスケープ漏れ」で、同じ話の繰り返しになる。デモの「logout でトークンが失効する」は画面上の変化が小さく、`GH_TOKEN` の挙動が未確認のまま実演するのは危険。
-
-### 対象チェック
-- gh を使う人は多い（GitHub を全員が使う前提は妥当）。ただし参加者がやることは「アップデートする」だけで、15 分の発表は要らない。
-
-### `gh event listen` 枠に入れる案について
-- **反対**。`gh event listen` は preview・ウェイトリスト制で保留中であり、いつ発表されるか分からない。セキュリティ更新を、発表されるか分からない枠の冒頭に載せると、周知が遅れるだけ。
+### デモチェック
+- 「`true` では配信され、`'extended'` では 403」は docs から組み立てた推測で、誰も動かしていない。ワークスペース外を読む plugin をわざわざ書いて見せるのは不自然で、「自分のプロジェクトで何をすればいいか」に繋がらない。
 
 ### 結論: 却下（単独枠として）
-- 理由: 持ち帰れるものが「v2.106.0 に上げる」「`gh auth logout` を使うスクリプトを洗い出す」の 2 行で、15 分の内容がない。
-- 代わりの提案: 勉強会とは別に、**すぐに社内チャットで周知する**（「gh を v2.106.0 以上に。`gh auth logout` はトークンを失効させるようになった。旧挙動は `--no-revoke`」）。どうしても勉強会で触れるなら、skills 系の枠（P1 統合後の許可確認枠など）で「`gh skill update` が同名の別リポジトリの skill を入れる問題（GHSA-q2rq-2r2v-2jm5）」を 1 枚、サプライチェーンの例として使う程度にとどめる。
+- 点数の見立て（critic 案）: 新しさ 5 / 実務への効き 2 / 15 分で話せるか 3 / デモ映え 2 = **12**
+  - 新しさ: 11/26 の stable なので 5
+  - 実務への効き: Web 限定かつ opt-in。社内の Vite 利用も未確認なので 2
+  - 15 分: 前提説明が重く、小ネタが散らばるので 3
+  - デモ: 未検証で、作為的な最小構成しかないので 2
+- 出し直しの条件: 社内の Web プロジェクトが Vite 8 を使っていて、`'extended'` を有効にすると実際に壊れる plugin が見つかった場合。その場合は「Vite 8.4 へ上げるときの確認点（`'extended'`、`optimizeDeps.rollupOptions` の削除、`css.devSourcemap` の移行）」という移行ネタにすれば 14 程度にはなる。
 
 ---
 
-## T2: claude-code-action v1.0.288 の `allow_fork_prs` 既定 false
+## 2. 既出候補への更新
 
-### 既出チェック
-- 既出の `/code-review` は Claude Code 本体（ローカル / マネージド）で、プロダクトが違う。過去テーマとも重ならない。
+### 2-1. GitHub MCP Server v2.2.0 の MCP skills 対応 → Skills over MCP（14・保留）
 
-### 根拠チェック（リリースページと PR #2114 を critic が取得して確認）
-- v1.0.288（11/23）の breaking change は "Skip pull requests from forks by default"（#2114、11/23 にマージ）の 1 件だけ。
-- PR #2114 で、次の点を確認した。
-  - スキップしたときはステップが成功（緑）になり、警告をログに出すだけ
-  - "A required check that only runs the action passes without a review"
-  - issues / `workflow_dispatch` / `schedule` には影響しない
-  - `@v1` には次のリリースで入る
-  - `allow_fork_prs: "true"` で元に戻せる
-  - カスタム `github_token` に `pull-requests: read` がないと失敗する
-- **T2 に書かれていない点**: `pull-requests: read` のエラーは fork に限らない。PR #2114 には、コメントで起動したときに PR を調べる処理が「same-repository branches でも」行われるとある。つまり、**private リポジトリで fork を使っていなくても**、カスタムトークンの権限が足りなければ、これまで動いていたワークフローが失敗する。社内への影響があるとすれば、fork よりもこちら。
-- PR は private リポジトリについて、「fork のイベントは skip の前に write / bot のチェックを通り、拒否されると失敗する」と書いているだけで、「private なら影響なし」とは書いていない。「private 中心なら影響小」は推測として扱うこと（org で private リポジトリの fork を許可しているかによる）。
+#### 根拠チェック（PR #3685 を critic が取得して確認）
+- 11/13 にマージ。18 skills。"replaces server instructions entirely"。仕様は "aligned with the beta Skills extension"。protocol revision の明記はない。Go SDK は v1.8.0。**Claude Code への言及はない。** 「対話端末での有効化は検証範囲外（"interactive-terminal activation is not claimed"）」とも書かれている。
+- **trend-scout の記述で足りない点**: PR には "Both client `MCP_SKILLS=true` and server `--features=skills`/`--insiders` are required." とある。**クライアント側の opt-in も必須**ということ。`MCP_SKILLS=true` は Copilot CLI 側の設定で、Claude Code に同じ役割の設定があるのか、Claude Code の Skills extension の交渉にこのサーバーが応えるのかは分からない。trend-scout はこれを「動作確認の環境」としてしか書いておらず、「サーバー側は opt-in で返せる」だけが残ると楽観的に読める。
+- 副作用もある。有効にすると server instructions が丸ごと skills catalog に置き換わる。
+- 仕様リポジトリ名の食い違い: `modelcontextprotocol/ext-skills` も実在する（Beta、base revision 2026-07-28）。前回の根拠の `experimental-ext-skills` と同じ記述。改名・リダイレクトの記載はページにない。どちらを根拠に書いても内容は同じだが、関係は未確認のまま。
 
-### 時間チェック
-- デモには fork 用の別アカウントと API キーが必要で、見せられるのは「緑で終わるログ」だけ。15 分の枠としては内容が足りない。
+#### 判断
+- **点は 14 のまま、保留のまま。**
+  - 保留理由の本命は「Team 組織の Owner が有効にするまで OFF」。これは何も変わっていない。
+  - 「社内 MCP が skills を返すか」は、「GitHub 公式サーバーはフラグを立てれば返す。Claude Code が受け取れるかは未検証」に**文言だけ**更新する。
+- 点を上げる条件: GitHub MCP Server をローカルで `--features=skills` 付きで起動し、Claude Code 2.1.332 の `/` メニューに `github:<skill>` が出ることをリハーサルで確認できた場合。そうなれば、デモ候補を個人リポジトリ（olaservo）から公式サーバーに替えられる。参加者全員が GitHub を使うので、実務への効き 2 → 3、デモ映え 3 → 4 で **16 程度**まで上がり得る（推測）。ただし Owner の有効化が前提なのは変わらない。
+- 時期: v2.2.0 は 11/16。前回の対象期間より前で、見落としの補足という trend-scout の注記は正しい。
 
-### 対象チェック
-- 社内で claude-code-action を使っているか**未確認**。使っていなければ対象者は 0 人。使っていても、関係するのはワークフローを管理する数人。
+### 2-2. `/loop` と scheduled task の上限 7 日 → 30 日（2.1.330）
 
-### TOP1（`/code-review`）に 1 枚足す案について
-- **反対**。TOP1 はすでに「`/code-review` + `--fix` + `/loop` の CI 見張り」で要点が 3 つある。別プロダクトの CI 設定を足すと 4 つ目になり、「15 分で話せるか」を下げる。
+#### 根拠チェック
+- changelog 2.1.330（November 20, 2026）: "Changed recurring scheduled tasks and `/loop` to run up to 30 days instead of 7 while their session keeps running, and say when they end; tasks made before this release still end at 7 days"。**practitioner の引用と完全に一致する。**
+- scheduled-tasks.md "Recurring task expiry": "Recurring tasks automatically expire 30 days after creation. The task fires one final time, then deletes itself." "Before v2.1.330, the limit was 7 days, and recurring tasks created with `CronCreate` on those versions keep it." **一致する。**
+- 小さな不整合: 同じページの Limitations のリンクは、まだ `#seven-day-expiry` を指している（docs の更新漏れ）。発表には影響しない。
 
-### 結論: 却下
-- 理由: 社内での利用が未確認で、対象者がほとんどいない可能性が高い。デモの見せ場がない。15 分の内容がない。
-- 代わりの提案: 社内で claude-code-action を使っているか人間に確認する。使っていれば、勉強会ではなく運用の周知で「`@v1` 固定なら挙動が変わった。カスタム `github_token` に `pull-requests: read` があるか確認」と伝える。
+#### 注意点
+- **対象はセッション内のタスク（`/loop` と `CronCreate`）だけ**。cloud scheduled task や Desktop scheduled task の上限の話ではない。TOP1 は前回、用語を「cloud scheduled task」に揃える条件を付けた。そこに「scheduled task が 30 日に」と書くと、cloud 側の話だと誤解される。スライドでは「`/loop`（セッション内のタスク）は最長 30 日」と書くこと。
+- 30 日動くのは**セッションが動き続けている間だけ**。ターミナルを閉じれば止まる（Limitations）。「30 日 CI を見張れる」と売り込むのは実態に合わない。CI 見張りの用途なら、数時間で十分。
+- "say when they end" の訳は、practitioner の「終了時に通知される」より「いつ終わるかを表示する」のほうが原文に近い。終了時点で通知が来るのか、作成時に終了時期を表示するのかは、原文からは判別できない。断定しないこと。
+
+#### 判断: 条件付きで可
+- TOP1 の `/loop` パートに 1 行の補足として入れてよい。点は動かさない（practitioner の判断どおり）。
+- 条件: (a)「セッション内のタスク」と明記し、cloud scheduled task と混同しない (b)「セッションが動いている間」を必ず添える (c) 2.1.330 より前に作ったタスクは 7 日のまま。デモ用のタスクは 2.1.332 で作り直す。
+
+### 2-3. runner-images #15368 の Close
+
+- critic の確認結果:
+  - 11/19 に DynastyAhri が作成（本文なし）。11/20 に "[Windows-2025-vs2026] Update LLVM to 22" に改題。
+  - **11/26 に本人が "It outdated" へ改題し、"completed" で Close**。
+  - コメントは Contributor の v-dovchar による "Take a look"（11/19）の 1 件だけ。ラベルは feature request。PR #15370 はページ上で言及されていない。
+  - 外部リポジトリ 2 件が 11/24 に「古い Clang を回避」「LLVM 22 を choco で入れる」コミットでこの issue を参照している。**利用者側で回避策を入れている状況で、イメージ側が直った証拠はない。**
+- 判断: **変更なし（15 点・次点・条件付きのまま）**。trend-scout の「直ったとは扱わない」は妥当。ただし「閉じた人がメンテナか未確認」は、**作成者本人**と確定できた。Announcement でもない要望 issue なので、今後は追跡対象から外してよい。
+
+### 2-4. claude-code-action v1.0.289 / v1.0.290
+
+- リリースページで確認した内容: v1.0.289 は #2122（ログをプレーンテキストで出し、溜めていたコメントを run step で投稿する）、v1.0.290 は #2121（`GITHUB_OUTPUT` を元に戻す）。v1.0.290 より新しい版はない。ページに年の表記はない。
+- 判断: **却下のまま**。どちらも小さな修正で、v1.0.288 の却下理由（社内利用が未確認、デモの見せ場がない）は変わらない。人間への確認事項（claude-code-action を使っているか、`pull-requests: read`）は前回から継続。
 
 ---
 
-## 既出候補の更新が評価を変えるか
+## 3. 参考扱いだった項目の再検討
 
-| 既出候補 | 更新 | critic の判断 |
-|---|---|---|
-| ランナーイメージ（15 点・次点・条件付き） | #15373（11/20、pin 済み）。`windows-2025-vs2026` / `windows-11-vs2026-arm` は 12/1 から非推奨化。critic が取得して確認した | **点は上げない**。issue の本文自体が「ラベルの更新は不要」と「`runs-on` を更新せよ」で矛盾している。さらに 11/22 のコメントに「VS 2027 のライフサイクルページは 404 で、最新のイメージもまだ VS 2026」という指摘があり、内容が固まっていない。社内の Windows / C++ ビルドは少ないと思われる（推測）。12/1 の日付は 1 行の補足にとどめ、「VS 2027 になった」と断定しない |
-| 許可確認との付き合い方（15 点・次点） | 2.1.332 の `/permissions` が、次回起動時に無視されるルール（例: ツール名のない `rm -rf`）を拒否して理由を出す。changelog で確認した | **上げる方向**。P1 を統合すれば、11/25 の新要素が 2 つ入り、新しさを補強できる。統合した場合はリードが再採点すること（目安 +1） |
-| `/code-review`（TOP1） | 2.1.332 で「routine」が「cloud scheduled task」に言い換えられた（`/routines` は引き続き使える）。changelog で確認した | **点は変わらない**。`/loop` パートのスライドの用語を「cloud scheduled task」に直すことだけ条件に追加する |
-| VS Code 拡張（TOP3） | 2.1.332 で、サイドバーの `/rewind` が self-paced `/loop` を止めるときの警告が追加された。changelog で確認した | **点は変わらない**。デモで `/rewind` を使わない限り関係ない |
-| `gh event listen`（保留） | v2.106.0 での変更は docs 1 行だけ | **変わらない**。保留のまま。P3 を載せる案には反対（上記） |
-| Backlog MCP Server（保留） | v0.23.4 は依存更新だけ（trend-scout の記述。critic は未確認） | **変わらない**。Skills over MCP には非対応なので、T1 との統合でも点は上がらない。CVE-2026-111768 は引き続き NVD / GHSA で確認が必要 |
+### 3-1. Claude アプリのリリースノート（11/20・11/24）
+
+#### 根拠チェック（release-notes.md と Computer use の設定記事を critic が取得して確認）
+- **11/20 Computer use（beta）Team / Enterprise**: 新しい Claude 体験の Claude Desktop で使える。Web / Mobile からは「Computer access」がオンのときに使える。組織ごとに段階的に展開。
+- 設定記事（中国語版。英語版は未取得）:
+  - **既定で OFF**。有効にできるのは Owner / Primary Owner。「組織設定 > 機能」で chat と Cowork の統合をオンにしたうえで、Claude Desktop の Computer use をオンにする。
+  - **Team はカスタムロールがないので、有効にすると全員に適用される**。
+  - Desktop は macOS 14 以降と Windows。Web / Mobile から使うには、対象のコンピュータで Desktop を開いておく必要がある。
+  - **Claude Code と、Cowork オプションで起動したタスクでは動かない**。
+  - **Claude と操作対象のアプリの間にサンドボックスがなく**、接続フォルダの制限も適用されない。macOS では「アクセシビリティ」と「画面収録」の権限が要る。
+  - 設定の反映には約 1 時間かかる。MDM の `computerUseEnabled` で無効にできる。
+- **11/24 Monthly recap の正式版**: 対象プランは **Free / Pro / Max / Ultra で、Team は書かれていない**。trend-scout のメモは「Team / Enterprise 向けの Computer use、Monthly recap の正式版、…」と並べていて、Team で使えるように読める。**社内では使えない可能性が高い。候補から外すこと。**
+- **11/24 artifact のアプリ化（beta）**: Mac / Windows。対象プランの記載がない。Team で使えるかは未確認。
+- **11/24 connected apps へのファイル送信・保存（beta）**: Team / Enterprise は Owner が有効にした場合だけ使える。
+
+#### 既出チェック
+- 過去テーマ・backlog とは重ならない（Claude Code ではなく Claude アプリの機能）。
+
+#### 時間・対象チェック
+- 4 機能を束ねると「11 月の新機能紹介」の羅列になる。うち 1 つは Team 対象外、1 つは対象が不明。束ねる形は不可。
+- Computer use 1 本なら成立する。
+  - 対象は Claude Team を使う全員で、Claude Code の候補よりむしろ広い（モバイル / Web / インフラを問わない）。
+  - 要点も 3 つに収まる: 何ができるか → 権限とリスク（サンドボックスなし、アプリの許可・ブロックリスト） → 社内でどう使うか。
+  - デモ映えは高い。
+- 一番の問題は Owner の有効化。Team では有効にした瞬間に全員に適用され、しかもサンドボックスがない。会社として有効にするかどうかの判断が先で、勉強会のネタとしてはその後になる。
+
+#### 判断: 条件付き（Computer use 1 本に絞り、backlog に「保留」で登録する）
+- 形: 「Claude Team で使えるようになった Computer use（beta）: 何を任せてよく、何を任せてはいけないか」
+- 点数の見立て（critic 案）: 新しさ 5（11/20 で 1 か月以内）/ 実務への効き 2（有効化されるまで誰も使えない）/ 15 分 4 / デモ映え 2（有効化されるまで、デモは公式の説明をなぞるだけ）= **13**
+  - Owner が有効化すれば、実務への効き 3 / デモ映え 4 で **16**（推測）
+- 条件:
+  1. 人間に確認する: Owner が Computer use を有効にする（または検証用に有効にする）意思があるか。サンドボックスがないので、情報システム側の判断が要る
+  2. デモ機は macOS 14 以降、または Windows。業務アカウントでログイン済みのアプリは操作対象にしない（検証用のアプリだけを許可リストに入れる）
+  3. Monthly recap はスライドに入れない。artifact のアプリ化は Team で使えると確認できた場合だけ、おまけで 1 枚
+  4. 「Claude Code でも使える」と言わない（設定記事に、Claude Code では動かないとある）
+- 期間外（11/20・11/24）という点は、backlog で一度も検討していないので、却下の理由にはしない。
+
+### 3-2. Claude Code 2.1.331 の managed `extraKnownMarketplaces` 自動更新（11/30 以降）
+
+- 根拠チェック: changelog 2.1.331（November 23, 2026）に "Changed in a future release, on or after November 30, 2026: plugin marketplaces in managed `extraKnownMarketplaces` will auto-update by default. To opt one out, set `"autoUpdate": false` on its entry"。**practitioner の引用と一致する。**
+  - 「11/30 に変わる」ではなく「11/30 以降の、いずれかの将来のリリースで変わる」。日付は確定していない。
+- 判断: **勉強会ネタではなく周知事項**（practitioner の判断に同意）
+  - 関係するのは managed settings でマーケットプレイスを配っている管理者だけで、参加者の大半には無関係。15 分の内容も、デモの見せ場もない。
+  - 一方で、自動更新が既定になると、配っているマーケットプレイスの変更が利用者の端末に審査なしで入る。サプライチェーン上の影響はあり、期限は 3 日後。勉強会の枠を待たずに、レポートの「人間に確認したいこと」の上位に入れるべき。
+  - 確認する内容: 社内で managed settings（`extraKnownMarketplaces`）を使っているか。使っているなら、各エントリを自動更新にするか、`"autoUpdate": false` を明示するか。
+  - 「許可確認との付き合い方」（TOP3）に 1 枚足す案には**反対**。あの枠は利用者向けの設定の話で、要点がすでに 3 つある。
 
 ---
 
 ## リードへの申し送り
 
-1. 新規候補から TOP3 を入れ替える必要はない。今回の一番の収穫は、P1 を「許可確認との付き合い方」に統合して既出候補を強くすること。
-2. T1 / P2 は統合し、P2 の構成をもとにする（P2 は `!` が無効なことを正しく書いている）。T1 の `PreSkillShellCommand` パートは必ず削除する。人間の確認（Owner が有効化するか）が取れるまでは保留にする。
-3. P3 は勉強会の候補ではなく、全社への周知として人間に提案する。
-4. 人間に確認すること（追加分）
-   - 社内 Team 組織の Owner が Skills over MCP を有効にするつもりがあるか
-   - 社内で claude-code-action を使っているか。使っているなら、カスタム `github_token` を使っているか
-   - 社内に gh を使っている共用マシンや CI スクリプトがあるか（`gh auth logout` の挙動変更の影響）
-
----
+1. TOP3 はそのままでよい。Vite は却下。
+2. TOP1 に `/loop` の 30 日を 1 行だけ足すのは可。「セッション内のタスク」「セッションが動いている間」の 2 つの限定を必ず付けること。cloud scheduled task の話にしない。
+3. Skills over MCP は 14・保留のまま。保留理由に「クライアント側の opt-in（GitHub MCP の PR では `MCP_SKILLS=true`）が Claude Code で何に当たるか未確認」を加える。公式サーバーでリハーサルが通れば 16 まで上がり得る。
+4. Claude アプリの Computer use を、新規に**保留（13 点、Owner が有効化すれば 16）**として backlog に登録することを提案する。Monthly recap は Team 対象外なので入れない。
+5. 周知事項（急ぎ）: managed `extraKnownMarketplaces` の自動更新（11/30 以降）。前回の gh v2.106.0 と並べて、人間への確認事項にする。
+6. runner-images #15368 は追跡対象から外す。
 
 ## 確認した URL（critic が今回取得したもの）
 
-- https://code.claude.com/docs/en/changelog （2.1.332 の Added / Changed / Improvements。2.1.331 に MCP skills の記載がないこと）
-- https://code.claude.com/docs/en/mcp.md （"Use skills from MCP servers" 節の全文。10 万字以降を読んだ）
-- https://code.claude.com/docs/en/hooks.md （PreSkillShellCommand 節。10 万〜20 万字の範囲）
-- https://code.claude.com/docs/en/skills.md （MCP skill で無効になる機能、`disableSkillShellExecution`）
-- https://github.com/anthropics/claude-code-action/releases/tag/v1.0.288
-- https://github.com/anthropics/claude-code-action/pull/2114
-- https://github.com/cli/cli/releases/tag/v2.106.0
-- https://github.com/actions/runner-images/issues/15373
-- https://github.com/modelcontextprotocol/experimental-ext-skills （Skills extension 本体、Beta、base revision 2026-07-28）
-- https://github.com/olaservo/skills-over-mcp-demo （デモサーバーの候補。Claude Code での動作は未検証）
+- https://github.com/vitejs/vite/releases/tag/v8.4.0
+- https://raw.githubusercontent.com/vitejs/vite/main/docs/config/server-options.md
+- https://github.com/vitejs/vite/pull/23972
+- https://github.com/github/github-mcp-server/pull/3685
+- https://github.com/modelcontextprotocol/ext-skills
+- https://code.claude.com/docs/en/changelog （先頭の 10 万字。2.1.330 / 2.1.331 / 2.1.332 の該当文、2.1.333 がないこと）
+- https://code.claude.com/docs/en/scheduled-tasks.md （全文）
+- https://github.com/actions/runner-images/issues/15368
+- https://github.com/anthropics/claude-code-action/releases
+- https://support.claude.com/en/articles/12138966-release-notes.md
+- https://support.claude.com/zh-CN/articles/18483812-为-team-和-enterprise-计划设置计算机使用 （Computer use の設定記事。中国語版）
 
-検索のみ（WebSearch の結果で見ただけ。本文は未取得）: modelcontextprotocol.io/extensions/skills/overview、modelcontextprotocol.io/seps/2640-skills-extension、aaif.io/blog/skills-over-mcp、pkg.go.dev/github.com/panyam/mcpkit/ext/skills
+検索結果で見ただけ（本文は未取得）: vite.dev/guide/api-environment-plugins（`addSafeModule` の説明）、support.claude.com/en/articles/16635803（Cowork のブラウザ使用の設定）、code.claude.com/docs/en/computer-use.md
 
-## 取得できなかった URL
+## 取得できなかった・試していない URL
 
-- なし（critic が取得を試みた URL はすべて取得できた）。
-- 取得を試していないもの: modelcontextprotocol.io（両ノートで ENOTFOUND の報告。仕様の一次情報は、代わりに github.com/modelcontextprotocol/experimental-ext-skills で確認した）、https://github.com/nulab/backlog-mcp-server/releases（v0.23.4 の記述は trend-scout の確認のまま）、https://github.com/actions/runner-images/issues/15368
-- hooks.md の 20 万字以降と skills.md の 10 万字以降は読んでいない。PreSkillShellCommand が MCP skill に対して発火するかは、hooks.md の該当節には書かれていなかった（skills.md では MCP skill の `!` は実行されないとあるので、発火する対象がない）。
+- 英語版の Computer use 設定記事 "Set up computer use for Team and Enterprise plans": 検索で URL が特定できず、未取得。代わりに中国語版（同じ記事 ID 18483812）で確認した。
+- vite.dev（`addSafeModule` の公式ガイド）: 試していない。説明は検索結果の要約のみ。
+- https://github.com/vitejs/vite/releases （create-vite@9.4.0、v8.4.0-beta.2 の日付）: critic は再確認していない。trend-scout の確認のまま。
+- https://github.com/github/github-mcp-server/releases/tag/v2.2.0 と v2.3.0: critic は再確認していない（PR #3685 で中身は確認した）。
+- changelog の 10 万字以降は読んでいない（最新 3 版の範囲は読んだ）。
+- github.blog / nulab.com / modelcontextprotocol.io: これまで ENOTFOUND だったので試していない。
+- 補足: claude-code-action のリリースページには年の表記がない。v1.0.288〜v1.0.290 の年は前後の版から推定したもの（判断には影響しない）。
